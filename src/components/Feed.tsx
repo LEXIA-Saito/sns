@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   PenSquare,
-  Monitor,
   MessageSquareText,
   Loader2,
   QrCode,
@@ -115,13 +113,6 @@ export default function Feed() {
               <QrCode size={15} />
               <span className="hidden sm:inline">QRコード</span>
             </button>
-            <Link
-              href="/screen"
-              className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
-            >
-              <Monitor size={15} />
-              <span className="hidden sm:inline">スクリーン表示</span>
-            </Link>
           </div>
         </div>
       </header>
