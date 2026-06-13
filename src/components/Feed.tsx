@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PenSquare, Monitor, MessageSquareText, Loader2 } from "lucide-react";
+import {
+  PenSquare,
+  Monitor,
+  MessageSquareText,
+  Loader2,
+  QrCode,
+  X,
+} from "lucide-react";
 import type { Post, AuthorRole } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { useNow } from "@/lib/useNow";
@@ -18,6 +25,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<AuthorRole>("academy");
   // 1分ごとに現在時刻を更新し「◯分前」をリアルタイム表示
@@ -93,13 +101,24 @@ export default function Feed() {
               <p className="text-[11px] text-ink-400">例会SNS</p>
             </div>
           </div>
-          <Link
-            href="/screen"
-            className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
-          >
-            <Monitor size={15} />
-            <span className="hidden sm:inline">スクリーン表示</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setQrOpen(true)}
+              className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+              aria-label="QRコードを表示"
+            >
+              <QrCode size={15} />
+              <span className="hidden sm:inline">QRコード</span>
+            </button>
+            <Link
+              href="/screen"
+              className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+            >
+              <Monitor size={15} />
+              <span className="hidden sm:inline">スクリーン表示</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -149,6 +168,45 @@ export default function Feed() {
           </div>
         )}
       </main>
+
+      {qrOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 px-5 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="qr-title"
+          onClick={() => setQrOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="text-left">
+                <h2 id="qr-title" className="text-base font-bold text-ink-900">
+                  サイトQRコード
+                </h2>
+                <p className="mt-1 text-xs text-ink-500">
+                  参加者に読み取ってもらうと、このSNSを開けます。
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQrOpen(false)}
+                className="rounded-full p-2 text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
+                aria-label="QRコードを閉じる"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <img
+              src="/site-qr.svg"
+              alt="26アカデミー例会SNSのQRコード"
+              className="mx-auto mt-5 aspect-square w-full max-w-72 rounded-xl border border-ink-200 bg-white p-3"
+            />
+          </div>
+        </div>
+      )}
 
       {/* 投稿ボタン(FAB) */}
       <button
