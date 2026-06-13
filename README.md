@@ -105,10 +105,33 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /posts/{file} {
       allow read: if true;
-      allow write: if request.resource.size < 50 * 1024 * 1024;
+      allow write: if request.resource.size < 50 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|video/.*');
     }
   }
 }
+```
+
+**Storage の CORS 設定**(画像・動画アップロードで `blocked by CORS policy` が出る場合):
+
+Firebase Storage のアップロードはブラウザから `firebasestorage.googleapis.com` に直接送信されるため、
+本番ドメイン `https://sns26.vercel.app` からのプリフライトリクエストを Storage バケット側で許可します。
+リポジトリ内の `firebase-storage-cors.json` を使って、Google Cloud SDK で次を実行してください。
+
+```bash
+gcloud storage buckets update gs://jc26-7dfdc.firebasestorage.app --cors-file=firebase-storage-cors.json
+```
+
+旧形式のバケット名を使っている Firebase プロジェクトでは、次のように `.appspot.com` バケットへ適用します。
+
+```bash
+gcloud storage buckets update gs://jc26-7dfdc.appspot.com --cors-file=firebase-storage-cors.json
+```
+
+設定確認は次のコマンドでできます。
+
+```bash
+gcloud storage buckets describe gs://jc26-7dfdc.firebasestorage.app --format='default(cors_config)'
 ```
 
 > ⚠️ 認証なしの公開運用です。例会など限られた期間での利用を想定しています。長期公開する場合はルールの見直しを推奨します。
