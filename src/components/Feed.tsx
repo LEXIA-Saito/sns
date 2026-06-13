@@ -94,7 +94,7 @@ export default function Feed() {
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <img
-              src="/The_Year_of_the_fire_academy%20(1).svg"
+              src="/logo_26.png"
               alt="26アカデミー ロゴ"
               className="h-10 w-10 rounded-md object-contain"
             />

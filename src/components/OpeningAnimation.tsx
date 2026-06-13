@@ -3,7 +3,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
-const LOGO_SRC = "/The_Year_of_the_fire_academy%20(1).svg";
+const LOGO_SRC = "/logo_26.png";
 
 const METEOR_PARTICLES = [
   {
