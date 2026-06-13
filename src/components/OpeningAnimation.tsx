@@ -189,7 +189,7 @@ export default function OpeningAnimation() {
           <img
             src={LOGO_SRC}
             alt="26アカデミー ロゴ"
-            className="opening-logo relative z-10 h-40 w-40 rounded-[2rem] bg-white/95 object-contain p-3 shadow-2xl sm:h-52 sm:w-52"
+            className="opening-logo relative z-10 h-40 w-40 object-contain sm:h-52 sm:w-52"
           />
         </div>
 
