@@ -74,21 +74,21 @@ export default function CommentSection({
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="激励コメントを入力..."
+            placeholder="コメントを入力..."
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 handleSend();
               }
             }}
-            className="w-full resize-none rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 outline-none focus:border-ink-500"
+            className="block h-9 w-full resize-none rounded-md border border-ink-200 bg-white px-3 py-2 text-sm leading-5 text-ink-800 outline-none focus:border-ink-500"
           />
         </div>
         <button
           type="button"
           onClick={handleSend}
           disabled={sending || !text.trim()}
-          className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ink-900 text-white transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ink-900 text-white transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="コメントを送信"
         >
           <Send size={16} />

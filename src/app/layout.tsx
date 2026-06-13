@@ -6,7 +6,9 @@ export const metadata: Metadata = {
   description:
     "26アカデミー例会専用SNS。PR動画・画像・意気込み・激励コメントをリアルタイムで共有。",
   icons: {
-    icon: "/favicon.svg",
+    icon: "/The_Year_of_the_fire_academy%20(1).png",
+    shortcut: "/The_Year_of_the_fire_academy%20(1).png",
+    apple: "/The_Year_of_the_fire_academy%20(1).png",
   },
 };
 
