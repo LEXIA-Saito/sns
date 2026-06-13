@@ -13,12 +13,14 @@ interface PostCardProps {
   post: Post;
   commenterName: string;
   onCommenterNameChange: (name: string) => void;
+  now: number;
 }
 
 export default function PostCard({
   post,
   commenterName,
   onCommenterNameChange,
+  now,
 }: PostCardProps) {
   const comments = commentsToArray(post.comments);
   const [open, setOpen] = useState(false);
@@ -36,7 +38,7 @@ export default function PostCard({
             <RoleBadge role={post.role} />
           </div>
           <time className="text-xs text-ink-400">
-            {formatRelativeTime(post.createdAt)}
+            {formatRelativeTime(post.createdAt, now)}
           </time>
         </div>
       </header>
@@ -91,6 +93,7 @@ export default function PostCard({
           comments={comments}
           defaultName={commenterName}
           onNameChange={onCommenterNameChange}
+          now={now}
         />
       )}
     </article>

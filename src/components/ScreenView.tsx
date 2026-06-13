@@ -6,6 +6,7 @@ import { ArrowLeft, MessageCircle, Radio } from "lucide-react";
 import type { Post } from "@/lib/types";
 import { subscribePosts, commentsToArray } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
+import { useNow } from "@/lib/useNow";
 import Avatar from "./Avatar";
 import RoleBadge from "./RoleBadge";
 
@@ -13,6 +14,7 @@ export default function ScreenView() {
   const [posts, setPosts] = useState<Post[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const now = useNow(60_000);
 
   useEffect(() => {
     const unsub = subscribePosts((list) => setPosts(list));
@@ -102,7 +104,7 @@ export default function ScreenView() {
                         <RoleBadge role={post.role} />
                       </div>
                       <time className="text-xs text-ink-500">
-                        {formatRelativeTime(post.createdAt)}
+                        {formatRelativeTime(post.createdAt, now)}
                       </time>
                     </div>
                   </header>

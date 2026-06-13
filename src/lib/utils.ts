@@ -1,10 +1,12 @@
 /**
  * 相対時間表示(例: たった今 / 3分前 / 2時間前 / 6/13 14:30)
+ * @param timestamp 対象のタイムスタンプ(ミリ秒)
+ * @param now 基準とする現在時刻(ミリ秒)。useNow()の値を渡すと自動更新される
  */
-export function formatRelativeTime(timestamp?: number): string {
+export function formatRelativeTime(timestamp?: number, now?: number): string {
   if (!timestamp) return "";
-  const now = Date.now();
-  const diff = now - timestamp;
+  const base = now ?? Date.now();
+  const diff = base - timestamp;
   const sec = Math.floor(diff / 1000);
   const min = Math.floor(sec / 60);
   const hour = Math.floor(min / 60);

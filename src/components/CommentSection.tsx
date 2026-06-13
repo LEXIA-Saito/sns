@@ -11,6 +11,7 @@ interface CommentSectionProps {
   comments: Comment[];
   defaultName: string;
   onNameChange: (name: string) => void;
+  now: number;
 }
 
 export default function CommentSection({
@@ -18,6 +19,7 @@ export default function CommentSection({
   comments,
   defaultName,
   onNameChange,
+  now,
 }: CommentSectionProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -53,7 +55,7 @@ export default function CommentSection({
                 {c.text}
               </span>
               <span className="ml-2 text-[11px] text-ink-400">
-                {formatRelativeTime(c.createdAt)}
+                {formatRelativeTime(c.createdAt, now)}
               </span>
             </li>
           ))}

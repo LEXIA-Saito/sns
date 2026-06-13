@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PenSquare, Monitor, MessageSquareText, Loader2 } from "lucide-react";
 import type { Post, AuthorRole } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
+import { useNow } from "@/lib/useNow";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import SetupNotice from "./SetupNotice";
@@ -19,6 +20,8 @@ export default function Feed() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<AuthorRole>("academy");
+  // 1分ごとに現在時刻を更新し「◯分前」をリアルタイム表示
+  const now = useNow(60_000);
 
   const firebaseConfigured =
     !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
@@ -140,6 +143,7 @@ export default function Feed() {
                 post={post}
                 commenterName={name}
                 onCommenterNameChange={handleNameChange}
+                now={now}
               />
             ))}
           </div>
