@@ -11,6 +11,8 @@ interface PostComposerProps {
   onClose: () => void;
   defaultName: string;
   onNameChange: (name: string) => void;
+  role: AuthorRole;
+  onRoleChange: (role: AuthorRole) => void;
 }
 
 const MAX_FILE_MB = 50;
@@ -20,8 +22,9 @@ export default function PostComposer({
   onClose,
   defaultName,
   onNameChange,
+  role,
+  onRoleChange,
 }: PostComposerProps) {
-  const [role, setRole] = useState<AuthorRole>("academy");
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -122,7 +125,7 @@ export default function PostComposer({
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => setRole("academy")}
+                onClick={() => onRoleChange("academy")}
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
                   role === "academy"
@@ -135,7 +138,7 @@ export default function PostComposer({
               </button>
               <button
                 type="button"
-                onClick={() => setRole("lom")}
+                onClick={() => onRoleChange("lom")}
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
                   role === "lom"

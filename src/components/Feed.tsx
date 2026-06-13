@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PenSquare, Monitor, MessageSquareText, Loader2 } from "lucide-react";
-import type { Post } from "@/lib/types";
+import type { Post, AuthorRole } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import SetupNotice from "./SetupNotice";
 
 const NAME_KEY = "academy26_name";
+const ROLE_KEY = "academy26_role";
 
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -17,20 +18,28 @@ export default function Feed() {
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [name, setName] = useState("");
+  const [role, setRole] = useState<AuthorRole>("academy");
 
   const firebaseConfigured =
     !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
     !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
-  // 名前をローカル保存
+  // 名前・立場をローカル保存から復元
   useEffect(() => {
-    const saved = localStorage.getItem(NAME_KEY);
-    if (saved) setName(saved);
+    const savedName = localStorage.getItem(NAME_KEY);
+    if (savedName) setName(savedName);
+    const savedRole = localStorage.getItem(ROLE_KEY);
+    if (savedRole === "academy" || savedRole === "lom") setRole(savedRole);
   }, []);
 
   const handleNameChange = (v: string) => {
     setName(v);
     localStorage.setItem(NAME_KEY, v);
+  };
+
+  const handleRoleChange = (v: AuthorRole) => {
+    setRole(v);
+    localStorage.setItem(ROLE_KEY, v);
   };
 
   // リアルタイム購読
@@ -151,6 +160,8 @@ export default function Feed() {
         onClose={() => setComposerOpen(false)}
         defaultName={name}
         onNameChange={handleNameChange}
+        role={role}
+        onRoleChange={handleRoleChange}
       />
     </div>
   );
