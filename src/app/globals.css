@@ -91,16 +91,48 @@ body {
   animation: opening-grid 3.6s ease-out forwards;
 }
 
-.opening-sparks {
+.opening-meteor-field {
   position: absolute;
-  inset: -20%;
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.8px),
-    radial-gradient(circle, rgba(255, 176, 67, 0.85) 0 1px, transparent 2px);
-  background-position: 0 0, 32px 48px;
-  background-size: 96px 96px, 128px 128px;
+  inset: -10% -18%;
+  overflow: hidden;
   opacity: 0;
-  animation: opening-sparks 3.6s ease-out forwards;
+  animation: opening-meteor-field 3.6s ease-out forwards;
+}
+
+.opening-meteor-particle {
+  --meteor-top: 50%;
+  --meteor-left: 50%;
+  --meteor-size: 3px;
+  --meteor-drift: 32vw;
+  --meteor-fall: 20vh;
+  --meteor-delay: 0s;
+  --meteor-duration: 2.3s;
+  --meteor-opacity: 0.75;
+  position: absolute;
+  top: var(--meteor-top);
+  left: var(--meteor-left);
+  width: var(--meteor-size);
+  height: var(--meteor-size);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.9),
+    0 0 18px rgba(255, 153, 59, 0.72);
+  opacity: 0;
+  transform: translate3d(-18vw, -12vh, 0) rotate(34deg);
+  animation: opening-meteor-particle var(--meteor-duration) var(--meteor-delay) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.opening-meteor-particle::before {
+  content: "";
+  position: absolute;
+  right: 50%;
+  top: 50%;
+  width: clamp(3.5rem, 11vw, 9rem);
+  height: 1px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 178, 83, 0.12), rgba(255, 255, 255, 0.88));
+  transform: translateY(-50%);
 }
 
 .opening-emblem-wrap {
@@ -205,10 +237,23 @@ body {
   100% { background-position: 0 96px; opacity: 0; }
 }
 
-@keyframes opening-sparks {
-  0%, 12% { opacity: 0; transform: translateY(4rem); }
-  32%, 70% { opacity: 0.36; }
-  100% { opacity: 0; transform: translateY(-5rem); }
+@keyframes opening-meteor-field {
+  0%, 8% { opacity: 0; }
+  24%, 72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes opening-meteor-particle {
+  0% {
+    opacity: 0;
+    transform: translate3d(-18vw, -12vh, 0) rotate(34deg) scale(0.72);
+  }
+  18% { opacity: var(--meteor-opacity); }
+  72% { opacity: calc(var(--meteor-opacity) * 0.88); }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--meteor-drift), var(--meteor-fall), 0) rotate(34deg) scale(1.08);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
