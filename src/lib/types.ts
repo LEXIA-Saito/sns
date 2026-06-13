@@ -25,6 +25,7 @@ export interface Post {
   text: string;
   media?: Media | null;
   createdAt: number;
+  updatedAt?: number;
   comments?: Record<string, Comment>;
 }
 
