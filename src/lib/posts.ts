@@ -6,12 +6,15 @@ import {
   query,
   orderByChild,
   serverTimestamp,
+  update,
+  remove,
   type Unsubscribe,
 } from "firebase/database";
 import {
   ref as storageRef,
   uploadBytesResumable,
   getDownloadURL,
+  deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 import type { AuthorRole, Media, Post, Comment } from "./types";
@@ -55,6 +58,13 @@ export interface CreatePostInput {
   text: string;
   file?: File | null;
   onProgress?: (percent: number) => void;
+}
+
+export interface UpdatePostInput {
+  postId: string;
+  name: string;
+  role: AuthorRole;
+  text: string;
 }
 
 /**
@@ -110,6 +120,33 @@ export async function createPost(input: CreatePostInput): Promise<void> {
     media,
     createdAt: serverTimestamp(),
   });
+}
+
+/**
+ * 投稿の名前・立場・本文を更新する。
+ */
+export async function updatePost(input: UpdatePostInput): Promise<void> {
+  await update(ref(db, `${POSTS_PATH}/${input.postId}`), {
+    name: input.name.trim(),
+    role: input.role,
+    text: input.text.trim(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * 投稿を削除する。Storage上のメディアがあればあわせて削除する。
+ */
+export async function deletePost(post: Post): Promise<void> {
+  await remove(ref(db, `${POSTS_PATH}/${post.id}`));
+
+  if (!post.media?.path) return;
+
+  try {
+    await deleteObject(storageRef(storage, post.media.path));
+  } catch (error) {
+    console.warn("Storage media delete error:", error);
+  }
 }
 
 /**
