@@ -44,9 +44,11 @@ export default function ScreenView() {
       {/* ヘッダー */}
       <header className="flex shrink-0 items-center justify-between border-b border-ink-800 px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-base font-bold text-ink-950">
-            26
-          </div>
+          <img
+            src="/The_Year_of_the_fire_academy%20(1).svg"
+            alt="26アカデミー ロゴ"
+            className="h-12 w-12 rounded-lg bg-white object-contain p-1"
+          />
           <div>
             <h1 className="text-xl font-bold">26アカデミー 例会SNS</h1>
             <p className="text-xs text-ink-400">

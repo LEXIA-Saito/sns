@@ -93,9 +93,11 @@ export default function Feed() {
       <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-ink-900 text-sm font-bold text-white">
-              26
-            </div>
+            <img
+              src="/The_Year_of_the_fire_academy%20(1).svg"
+              alt="26アカデミー ロゴ"
+              className="h-10 w-10 rounded-md object-contain"
+            />
             <div className="leading-tight">
               <h1 className="text-sm font-bold text-ink-900">26アカデミー</h1>
               <p className="text-[11px] text-ink-400">例会SNS</p>
@@ -200,9 +202,9 @@ export default function Feed() {
               </button>
             </div>
             <img
-              src="/site-qr.svg"
+              src="/QR_349524.png"
               alt="26アカデミー例会SNSのQRコード"
-              className="mx-auto mt-5 aspect-square w-full max-w-72 rounded-xl border border-ink-200 bg-white p-3"
+              className="mx-auto mt-5 aspect-square w-full max-w-72 rounded-xl border border-ink-200 bg-white p-3 object-contain"
             />
           </div>
         </div>
