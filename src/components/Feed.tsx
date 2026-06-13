@@ -15,6 +15,7 @@ import { subscribePosts } from "@/lib/posts";
 import { useNow } from "@/lib/useNow";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
+import OpeningAnimation from "./OpeningAnimation";
 import SetupNotice from "./SetupNotice";
 
 const NAME_KEY = "academy26_name";
@@ -89,6 +90,7 @@ export default function Feed() {
 
   return (
     <div className="min-h-screen bg-ink-50">
+      <OpeningAnimation />
       {/* ヘッダー */}
       <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
