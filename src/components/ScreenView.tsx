@@ -8,6 +8,7 @@ import { subscribePosts, commentsToArray } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import { useNow } from "@/lib/useNow";
 import Avatar from "./Avatar";
+import OpeningAnimation from "./OpeningAnimation";
 import RoleBadge from "./RoleBadge";
 
 export default function ScreenView() {
@@ -41,6 +42,7 @@ export default function ScreenView() {
 
   return (
     <div className="flex h-screen flex-col bg-ink-950 text-white">
+      <OpeningAnimation />
       {/* ヘッダー */}
       <header className="flex shrink-0 items-center justify-between border-b border-ink-800 px-6 py-4">
         <div className="flex items-center gap-3">
