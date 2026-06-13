@@ -14,7 +14,7 @@ const NAME_KEY = "academy26_name";
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [name, setName] = useState("");
 
@@ -41,13 +41,26 @@ export default function Feed() {
     }
     let unsub: (() => void) | undefined;
     try {
-      unsub = subscribePosts((list) => {
-        setPosts(list);
-        setLoading(false);
-      });
+      unsub = subscribePosts(
+        (list) => {
+          setPosts(list);
+          setError(null);
+          setLoading(false);
+        },
+        (err) => {
+          // 読み取り権限エラーなど
+          const isPermission = /permission/i.test(err.message);
+          setError(
+            isPermission
+              ? "permission"
+              : "データの取得に失敗しました。通信環境をご確認ください。"
+          );
+          setLoading(false);
+        }
+      );
     } catch (e) {
       console.error(e);
-      setError(true);
+      setError("接続に失敗しました。設定をご確認ください。");
       setLoading(false);
     }
     return () => unsub?.();
@@ -87,10 +100,19 @@ export default function Feed() {
             <Loader2 size={28} className="animate-spin" />
             <p className="mt-3 text-sm">読み込み中...</p>
           </div>
-        ) : error ? (
-          <div className="py-24 text-center text-sm text-ink-500">
-            接続に失敗しました。設定をご確認ください。
+        ) : error === "permission" ? (
+          <div className="mx-auto max-w-md rounded-xl border border-ink-300 bg-white px-5 py-6 text-center">
+            <p className="text-base font-semibold text-ink-900">
+              データベースに接続できません
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-ink-500">
+              Firebase Realtime Database の読み取りが許可されていません。
+              Firebaseコンソールで <code className="rounded bg-ink-100 px-1">posts</code>{" "}
+              のセキュリティルール(読み書き許可)を設定してください。
+            </p>
           </div>
+        ) : error ? (
+          <div className="py-24 text-center text-sm text-ink-500">{error}</div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <MessageSquareText size={40} className="text-ink-300" />

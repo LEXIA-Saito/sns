@@ -21,22 +21,32 @@ const POSTS_PATH = "posts";
 /**
  * 投稿の購読(リアルタイム)。新しい順に並べたPost配列をコールバックで返す。
  */
-export function subscribePosts(callback: (posts: Post[]) => void): Unsubscribe {
+export function subscribePosts(
+  callback: (posts: Post[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
   const postsQuery = query(ref(db, POSTS_PATH), orderByChild("createdAt"));
-  return onValue(postsQuery, (snapshot) => {
-    const val = snapshot.val() as Record<string, Omit<Post, "id">> | null;
-    if (!val) {
-      callback([]);
-      return;
+  return onValue(
+    postsQuery,
+    (snapshot) => {
+      const val = snapshot.val() as Record<string, Omit<Post, "id">> | null;
+      if (!val) {
+        callback([]);
+        return;
+      }
+      const list: Post[] = Object.entries(val).map(([id, data]) => ({
+        ...data,
+        id,
+      }));
+      // createdAt 降順(新しい順)
+      list.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      callback(list);
+    },
+    (error) => {
+      console.error("Realtime DB read error:", error);
+      onError?.(error);
     }
-    const list: Post[] = Object.entries(val).map(([id, data]) => ({
-      ...data,
-      id,
-    }));
-    // createdAt 降順(新しい順)
-    list.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-    callback(list);
-  });
+  );
 }
 
 export interface CreatePostInput {
