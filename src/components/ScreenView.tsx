@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageCircle, Radio } from "lucide-react";
+import { ArrowDownUp, ArrowLeft, MessageCircle, Radio } from "lucide-react";
 import type { Post } from "@/lib/types";
 import { subscribePosts, commentsToArray } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
@@ -62,10 +62,20 @@ export default function ScreenView() {
             LIVE
           </span>
           <button
+            type="button"
             onClick={() => setAutoScroll((v) => !v)}
-            className="rounded-md border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition hover:border-ink-500 hover:text-white"
+            aria-label={`自動スクロールを${autoScroll ? "OFF" : "ON"}にする`}
+            aria-pressed={autoScroll}
+            title={`自動スクロール: ${autoScroll ? "ON" : "OFF"}`}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-ink-700 text-ink-300 transition hover:border-ink-500 hover:text-white sm:w-auto sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
           >
-            自動スクロール: {autoScroll ? "ON" : "OFF"}
+            <ArrowDownUp
+              size={16}
+              className={autoScroll ? "text-white" : "text-ink-500"}
+            />
+            <span className="hidden sm:inline">
+              自動スクロール: {autoScroll ? "ON" : "OFF"}
+            </span>
           </button>
           <Link
             href="/"
