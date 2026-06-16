@@ -14,6 +14,9 @@ const firebaseConfig = {
 
 const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export const db: Database = getDatabase(app);
+export const db: Database = getDatabase(
+  app,
+  firebaseConfig.databaseURL || "https://placeholder.firebaseio.com"
+);
 export const storage: FirebaseStorage = getStorage(app);
 export default app;
