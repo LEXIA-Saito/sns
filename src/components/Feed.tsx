@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   PenSquare,
   MessageSquareText,
+  Database,
   Loader2,
   QrCode,
   X,
@@ -104,6 +106,14 @@ export default function Feed() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/status"
+              className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+              aria-label="SSRステータスページを表示"
+            >
+              <Database size={15} />
+              <span className="hidden sm:inline">DB状態</span>
+            </Link>
             <button
               type="button"
               onClick={() => setQrOpen(true)}
