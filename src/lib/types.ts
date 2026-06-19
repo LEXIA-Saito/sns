@@ -14,6 +14,7 @@ export interface Media {
 export interface Comment {
   id: string;
   name: string;
+  avatarUrl?: string;
   text: string;
   createdAt: number;
 }
@@ -22,6 +23,7 @@ export interface Post {
   id: string;
   name: string;
   role: AuthorRole;
+  avatarUrl?: string;
   text: string;
   media?: Media | null;
   createdAt: number;

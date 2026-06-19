@@ -55,6 +55,7 @@ export function subscribePosts(
 export interface CreatePostInput {
   name: string;
   role: AuthorRole;
+  avatarUrl?: string;
   text: string;
   file?: File | null;
   onProgress?: (percent: number) => void;
@@ -64,6 +65,7 @@ export interface UpdatePostInput {
   postId: string;
   name: string;
   role: AuthorRole;
+  avatarUrl?: string;
   text: string;
 }
 
@@ -104,6 +106,36 @@ async function uploadMedia(
 }
 
 /**
+ * プロフィール画像(アバター)をアップロードし、ダウンロードURLを返す。
+ */
+export async function uploadAvatarImage(
+  file: File,
+  onProgress?: (percent: number) => void
+): Promise<string> {
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `avatars/${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2)}.${ext}`;
+  const sRef = storageRef(storage, path);
+  const task = uploadBytesResumable(sRef, file, { contentType: file.type });
+
+  return new Promise<string>((resolve, reject) => {
+    task.on(
+      "state_changed",
+      (snapshot) => {
+        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress?.(percent);
+      },
+      (error) => reject(error),
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        resolve(url);
+      }
+    );
+  });
+}
+
+/**
  * 新規投稿を作成する。ファイルがあればStorageにアップロードしてから保存。
  */
 export async function createPost(input: CreatePostInput): Promise<void> {
@@ -116,6 +148,7 @@ export async function createPost(input: CreatePostInput): Promise<void> {
   await set(newRef, {
     name: input.name.trim(),
     role: input.role,
+    ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
     text: input.text.trim(),
     media,
     createdAt: serverTimestamp(),
@@ -129,6 +162,7 @@ export async function updatePost(input: UpdatePostInput): Promise<void> {
   await update(ref(db, `${POSTS_PATH}/${input.postId}`), {
     name: input.name.trim(),
     role: input.role,
+    ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
     text: input.text.trim(),
     updatedAt: serverTimestamp(),
   });
@@ -155,11 +189,13 @@ export async function deletePost(post: Post): Promise<void> {
 export async function addComment(
   postId: string,
   name: string,
-  text: string
+  text: string,
+  avatarUrl?: string
 ): Promise<void> {
   const newRef = push(ref(db, `${POSTS_PATH}/${postId}/comments`));
   await set(newRef, {
     name: name.trim(),
+    ...(avatarUrl ? { avatarUrl } : {}),
     text: text.trim(),
     createdAt: serverTimestamp(),
   });

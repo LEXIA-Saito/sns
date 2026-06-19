@@ -17,9 +17,12 @@ import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import OpeningAnimation from "./OpeningAnimation";
 import SetupNotice from "./SetupNotice";
+import ProfileSetup from "./ProfileSetup";
+import Avatar from "./Avatar";
 
 const NAME_KEY = "academy26_name";
 const ROLE_KEY = "academy26_role";
+const AVATAR_KEY = "academy26_avatar";
 
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -27,8 +30,10 @@ export default function Feed() {
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<AuthorRole>("academy");
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
   // 1分ごとに現在時刻を更新し「◯分前」をリアルタイム表示
   const now = useNow(60_000);
 
@@ -36,12 +41,14 @@ export default function Feed() {
     !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
     !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
-  // 名前・立場をローカル保存から復元
+  // 名前・立場・アバターをローカル保存から復元
   useEffect(() => {
     const savedName = localStorage.getItem(NAME_KEY);
     if (savedName) setName(savedName);
     const savedRole = localStorage.getItem(ROLE_KEY);
     if (savedRole === "academy" || savedRole === "lom") setRole(savedRole);
+    const savedAvatarUrl = localStorage.getItem(AVATAR_KEY);
+    if (savedAvatarUrl) setAvatarUrl(savedAvatarUrl);
   }, []);
 
   const handleNameChange = (v: string) => {
@@ -52,6 +59,17 @@ export default function Feed() {
   const handleRoleChange = (v: AuthorRole) => {
     setRole(v);
     localStorage.setItem(ROLE_KEY, v);
+  };
+
+  const handleProfileSave = (newName: string, newRole: AuthorRole, newAvatarUrl?: string) => {
+    handleNameChange(newName);
+    handleRoleChange(newRole);
+    setAvatarUrl(newAvatarUrl);
+    if (newAvatarUrl) {
+      localStorage.setItem(AVATAR_KEY, newAvatarUrl);
+    } else {
+      localStorage.removeItem(AVATAR_KEY);
+    }
   };
 
   // リアルタイム購読
@@ -106,6 +124,14 @@ export default function Feed() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden border border-ink-200 transition hover:border-ink-400"
+              aria-label="プロフィール設定"
+            >
+              <Avatar name={name || "?"} role={role} avatarUrl={avatarUrl} size="sm" />
+            </button>
             <Link
               href="/status"
               className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
@@ -166,6 +192,7 @@ export default function Feed() {
                 key={post.id}
                 post={post}
                 commenterName={name}
+                commenterAvatarUrl={avatarUrl}
                 onCommenterNameChange={handleNameChange}
                 now={now}
               />
@@ -229,6 +256,20 @@ export default function Feed() {
         onNameChange={handleNameChange}
         role={role}
         onRoleChange={handleRoleChange}
+        avatarUrl={avatarUrl}
+        onProfileEdit={() => {
+          setComposerOpen(false);
+          setProfileOpen(true);
+        }}
+      />
+
+      <ProfileSetup
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        defaultName={name}
+        defaultRole={role}
+        defaultAvatarUrl={avatarUrl}
+        onSave={handleProfileSave}
       />
     </div>
   );

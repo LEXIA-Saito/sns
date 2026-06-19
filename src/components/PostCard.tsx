@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 interface PostCardProps {
   post: Post;
   commenterName: string;
+  commenterAvatarUrl?: string;
   onCommenterNameChange: (name: string) => void;
   now: number;
 }
@@ -20,6 +21,7 @@ interface PostCardProps {
 export default function PostCard({
   post,
   commenterName,
+  commenterAvatarUrl,
   onCommenterNameChange,
   now,
 }: PostCardProps) {
@@ -56,6 +58,7 @@ export default function PostCard({
         postId: post.id,
         name,
         role: editRole,
+        avatarUrl: commenterAvatarUrl,
         text: editText,
       });
       setEditing(false);
@@ -84,7 +87,7 @@ export default function PostCard({
     <article className="animate-fade-in-up overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
       {/* ヘッダー */}
       <header className="flex items-start gap-3 px-4 pt-4">
-        <Avatar name={post.name} role={post.role} />
+        <Avatar name={post.name} role={post.role} avatarUrl={post.avatarUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="truncate font-semibold text-ink-900">
@@ -168,6 +171,7 @@ export default function PostCard({
           postId={post.id}
           comments={comments}
           defaultName={commenterName}
+          commenterAvatarUrl={commenterAvatarUrl}
           onNameChange={onCommenterNameChange}
           now={now}
         />

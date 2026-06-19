@@ -5,11 +5,13 @@ import { Send } from "lucide-react";
 import type { Comment } from "@/lib/types";
 import { addComment } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
+import Avatar from "./Avatar";
 
 interface CommentSectionProps {
   postId: string;
   comments: Comment[];
   defaultName: string;
+  commenterAvatarUrl?: string;
   onNameChange: (name: string) => void;
   now: number;
 }
@@ -18,6 +20,7 @@ export default function CommentSection({
   postId,
   comments,
   defaultName,
+  commenterAvatarUrl,
   onNameChange,
   now,
 }: CommentSectionProps) {
@@ -34,7 +37,7 @@ export default function CommentSection({
     if (!body) return;
     setSending(true);
     try {
-      await addComment(postId, name, body);
+      await addComment(postId, name, body, commenterAvatarUrl);
       setText("");
     } catch (e) {
       console.error(e);
@@ -49,14 +52,17 @@ export default function CommentSection({
       {comments.length > 0 && (
         <ul className="mb-3 space-y-2">
           {comments.map((c) => (
-            <li key={c.id} className="text-sm">
-              <span className="font-semibold text-ink-800">{c.name}</span>
-              <span className="ml-2 whitespace-pre-wrap break-words text-ink-700">
-                {c.text}
-              </span>
-              <span className="ml-2 text-[11px] text-ink-400">
-                {formatRelativeTime(c.createdAt, now)}
-              </span>
+            <li key={c.id} className="flex gap-2 text-sm">
+              <Avatar name={c.name} role="academy" avatarUrl={c.avatarUrl} size="sm" />
+              <div className="flex-1">
+                <span className="font-semibold text-ink-800">{c.name}</span>
+                <span className="ml-2 whitespace-pre-wrap break-words text-ink-700">
+                  {c.text}
+                </span>
+                <span className="ml-2 text-[11px] text-ink-400">
+                  {formatRelativeTime(c.createdAt, now)}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

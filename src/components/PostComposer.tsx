@@ -5,6 +5,7 @@ import { X, ImagePlus, Film, Loader2, GraduationCap, Users } from "lucide-react"
 import type { AuthorRole } from "@/lib/types";
 import { createPost } from "@/lib/posts";
 import { cn } from "@/lib/utils";
+import Avatar from "./Avatar";
 
 interface PostComposerProps {
   open: boolean;
@@ -13,6 +14,8 @@ interface PostComposerProps {
   onNameChange: (name: string) => void;
   role: AuthorRole;
   onRoleChange: (role: AuthorRole) => void;
+  avatarUrl?: string;
+  onProfileEdit: () => void;
 }
 
 const MAX_FILE_MB = 50;
@@ -24,6 +27,8 @@ export default function PostComposer({
   onNameChange,
   role,
   onRoleChange,
+  avatarUrl,
+  onProfileEdit,
 }: PostComposerProps) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -73,6 +78,7 @@ export default function PostComposer({
       await createPost({
         name,
         role,
+        avatarUrl,
         text,
         file,
         onProgress: (p) => setProgress(p),
@@ -103,53 +109,25 @@ export default function PostComposer({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          {/* 名前 */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">
-              お名前
-            </label>
-            <input
-              type="text"
-              value={defaultName}
-              onChange={(e) => onNameChange(e.target.value)}
-              placeholder="例:齋藤 雅人"
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-ink-500"
-            />
-          </div>
-
-          {/* 種別 */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">
-              あなたの立場
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => onRoleChange("academy")}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
-                  role === "academy"
-                    ? "border-ink-900 bg-ink-900 text-white"
-                    : "border-ink-200 text-ink-600 hover:border-ink-400"
-                )}
-              >
-                <GraduationCap size={16} />
-                アカデミー
-              </button>
-              <button
-                type="button"
-                onClick={() => onRoleChange("lom")}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
-                  role === "lom"
-                    ? "border-ink-900 bg-ink-900 text-white"
-                    : "border-ink-200 text-ink-600 hover:border-ink-400"
-                )}
-              >
-                <Users size={16} />
-                LOMメンバー
-              </button>
+          {/* プロフィール (編集ボタンつき) */}
+          <div className="flex items-center justify-between rounded-lg border border-ink-200 bg-ink-50 p-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10">
+                <Avatar name={defaultName || "?"} role={role} avatarUrl={avatarUrl} size="md" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-ink-900">{defaultName || "名前未設定"}</p>
+                <p className="text-xs text-ink-500">
+                  {role === "academy" ? "アカデミー" : "LOMメンバー"}
+                </p>
+              </div>
             </div>
+            <button
+              onClick={onProfileEdit}
+              className="rounded-md border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+            >
+              変更
+            </button>
           </div>
 
           {/* テキスト */}
