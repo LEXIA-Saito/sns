@@ -9,15 +9,18 @@ import {
   Loader2,
   QrCode,
   X,
+  LogOut,
 } from "lucide-react";
 import type { Post, AuthorRole } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
+import { useAuth } from "@/lib/auth";
 import { useNow } from "@/lib/useNow";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import OpeningAnimation from "./OpeningAnimation";
 import SetupNotice from "./SetupNotice";
 import ProfileSetup from "./ProfileSetup";
+import LoginForm from "./LoginForm";
 import Avatar from "./Avatar";
 
 const NAME_KEY = "academy26_name";
@@ -25,6 +28,8 @@ const ROLE_KEY = "academy26_role";
 const AVATAR_KEY = "academy26_avatar";
 
 export default function Feed() {
+  const { user, loading: authLoading, configured: firebaseConfigured, signOutUser } =
+    useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +42,6 @@ export default function Feed() {
   // 1分ごとに現在時刻を更新し「◯分前」をリアルタイム表示
   const now = useNow(60_000);
 
-  const firebaseConfigured =
-    !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-    !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
-
   // 名前・立場・アバターをローカル保存から復元
   useEffect(() => {
     const savedName = localStorage.getItem(NAME_KEY);
@@ -50,6 +51,14 @@ export default function Feed() {
     const savedAvatarUrl = localStorage.getItem(AVATAR_KEY);
     if (savedAvatarUrl) setAvatarUrl(savedAvatarUrl);
   }, []);
+
+  // ログインアカウントの表示名を、未設定なら初期プロフィール名として利用
+  useEffect(() => {
+    if (user?.displayName && !localStorage.getItem(NAME_KEY)) {
+      setName(user.displayName);
+      localStorage.setItem(NAME_KEY, user.displayName);
+    }
+  }, [user]);
 
   const handleNameChange = (v: string) => {
     setName(v);
@@ -72,12 +81,22 @@ export default function Feed() {
     }
   };
 
-  // リアルタイム購読
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+    } catch (e) {
+      console.error(e);
+      alert("ログアウトに失敗しました。もう一度お試しください。");
+    }
+  };
+
+  // リアルタイム購読(ログイン済みのときのみ)
   useEffect(() => {
-    if (!firebaseConfigured) {
+    if (!firebaseConfigured || !user) {
       setLoading(false);
       return;
     }
+    setLoading(true);
     let unsub: (() => void) | undefined;
     try {
       unsub = subscribePosts(
@@ -104,7 +123,21 @@ export default function Feed() {
     }
     return () => unsub?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firebaseConfigured]);
+  }, [firebaseConfigured, user]);
+
+  // 認証状態の初期判定中はローディング表示
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-ink-950 text-white/70">
+        <Loader2 size={28} className="animate-spin" />
+      </div>
+    );
+  }
+
+  // 未ログイン(または Firebase 未設定)はログインフォームを要求
+  if (!user) {
+    return <LoginForm />;
+  }
 
   return (
     <div className="min-h-screen bg-ink-50">
@@ -148,6 +181,15 @@ export default function Feed() {
             >
               <QrCode size={15} />
               <span className="hidden sm:inline">QRコード</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+              aria-label="ログアウト"
+            >
+              <LogOut size={15} />
+              <span className="hidden sm:inline">ログアウト</span>
             </button>
           </div>
         </div>

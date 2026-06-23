@@ -10,7 +10,10 @@
 
 ## 主な機能
 
-- ✅ **投稿機能** — 名前を入力して誰でも投稿可能(認証なし)
+- ✅ **ログイン機能** — Firebase Authentication(メール / パスワード)でログイン必須
+  - 新規登録(アカウント作成)/ ログイン / ログアウトに対応
+  - 未ログイン時はログインフォームを表示し、投稿・閲覧をガード
+- ✅ **投稿機能** — ログイン後、名前を入力して投稿可能
   - アカデミーメンバー / LOMメンバーの立場を選択
   - テキストメッセージ + 画像・動画の添付(最大50MB)
 - ✅ **リアルタイム表示** — Firebase Realtime Database で全端末に即時反映
@@ -28,6 +31,7 @@
 ## 技術スタック
 
 - **フレームワーク**: Next.js 14 (App Router) + TypeScript
+- **認証**: Firebase Authentication(メール / パスワード)
 - **データベース**: Firebase Realtime Database
 - **ファイルストレージ**: Firebase Storage(画像・動画本体)
 - **スタイリング**: Tailwind CSS(モノトーン基調)
@@ -81,7 +85,17 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=取得したsenderId
 NEXT_PUBLIC_FIREBASE_APP_ID=取得したappId
 ```
 
-### 3. Firebase 側のルール設定(認証なし運用)
+### 3. Firebase Authentication を有効化
+
+ログインフォームはメール / パスワード認証を使用します。
+
+[Firebaseコンソール](https://console.firebase.google.com/project/jc26-7dfdc/authentication/providers) →
+「Authentication」→「Sign-in method」→「メール / パスワード」を**有効**にしてください。
+
+> Vercel など本番ドメインで利用する場合は、Authentication → Settings →「承認済みドメイン」に
+> 公開ドメイン(`xxx.vercel.app`)を追加してください。
+
+### 4. Firebase 側のルール設定
 
 **Realtime Database のルール**(コンソール → Realtime Database → ルール):
 
@@ -134,9 +148,11 @@ gcloud storage buckets update gs://jc26-7dfdc.appspot.com --cors-file=firebase-s
 gcloud storage buckets describe gs://jc26-7dfdc.firebasestorage.app --format='default(cors_config)'
 ```
 
-> ⚠️ 認証なしの公開運用です。例会など限られた期間での利用を想定しています。長期公開する場合はルールの見直しを推奨します。
+> ⚠️ 上記ルールはデータベース自体を公開する設定です。アプリ側ではログインを必須にしていますが、
+> より厳密に保護する場合は `".read"` / `".write"` を `"auth != null"` に変更し、ログイン済みユーザーのみ
+> 読み書きできるようにルールを見直してください。
 
-### 4. ローカルで起動
+### 5. ローカルで起動
 
 ```bash
 npm install
@@ -158,6 +174,12 @@ npm run dev
 
 ## ユーザーガイド
 
+### ログインする
+1. アプリを開くとログインフォームが表示されます
+2. 初回は「新規登録」からメールアドレス・パスワード・お名前を入力してアカウントを作成
+3. 次回以降は登録したメールアドレスとパスワードでログイン
+4. ヘッダー右上の「ログアウト」からいつでもログアウトできます
+
 ### 投稿する
 1. 画面下部の「投稿する」ボタンをタップ
 2. お名前を入力(次回以降は自動保存)
@@ -172,4 +194,4 @@ npm run dev
 
 - **プラットフォーム**: Vercel(GitHub連携)
 - **ステータス**: 🚧 コード完成 / Firebase設定・Vercel接続待ち
-- **最終更新**: 2026-06-13
+- **最終更新**: 2026-06-23
