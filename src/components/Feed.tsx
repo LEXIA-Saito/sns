@@ -21,6 +21,7 @@ import {
   type Session,
 } from "@/lib/session";
 import type { AccountRecord } from "@/lib/accounts";
+import { DEMO_SESSION, buildDemoPosts } from "@/lib/demo";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import LoginGate from "./LoginGate";
@@ -45,9 +46,20 @@ export default function Feed() {
     !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
     !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
-  // 保存済みセッションの復元
+  // デザイン確認用。?demo=1 で開くとログインなしでダミーデータを表示する
+  const [demo, setDemo] = useState(false);
+
+  // 保存済みセッションの復元(?demo=1 のときはダミーのセッション)
   useEffect(() => {
-    setSession(loadSession());
+    const isDemo = new URLSearchParams(window.location.search).get("demo") === "1";
+    setDemo(isDemo);
+    if (isDemo) {
+      setSession(DEMO_SESSION);
+      setPosts(buildDemoPosts(Date.now()));
+      setLoading(false);
+    } else {
+      setSession(loadSession());
+    }
     setSessionReady(true);
   }, []);
 
@@ -89,6 +101,7 @@ export default function Feed() {
 
   // リアルタイム購読
   useEffect(() => {
+    if (demo) return;
     if (!firebaseConfigured || !session) {
       setLoading(false);
       return;
@@ -119,7 +132,7 @@ export default function Feed() {
     }
     return () => unsub?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firebaseConfigured, session?.accountId]);
+  }, [firebaseConfigured, demo, session?.accountId]);
 
   if (!sessionReady) {
     return <div className="min-h-screen bg-canvas" />;
@@ -183,7 +196,7 @@ export default function Feed() {
 
       {/* メイン */}
       <main className="mx-auto max-w-xl px-4 pb-28 pt-5">
-        {!firebaseConfigured && <SetupNotice />}
+        {!firebaseConfigured && !demo && <SetupNotice />}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-ink-400">
