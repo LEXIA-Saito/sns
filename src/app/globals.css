@@ -53,6 +53,6 @@ body {
 /* ログイン画面の背景 */
 .gate-backdrop {
   background:
-    radial-gradient(circle at 20% 15%, rgb(var(--accent) / 0.35), transparent 55%),
+    radial-gradient(circle at 20% 15%, rgb(var(--gate-glow) / 0.35), transparent 55%),
     linear-gradient(160deg, rgb(var(--gate-from)), rgb(var(--gate-to)));
 }
