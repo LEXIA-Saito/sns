@@ -283,7 +283,7 @@ export default function Feed() {
       {/* 投稿ボタン(FAB) */}
       <button
         onClick={() => setComposerOpen(true)}
-        className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-fg shadow-lg transition hover:bg-accent-hover active:scale-95"
+        className="app-fab fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-fg shadow-lg transition hover:bg-accent-hover active:scale-95"
       >
         <PenSquare size={18} />
         投稿する
