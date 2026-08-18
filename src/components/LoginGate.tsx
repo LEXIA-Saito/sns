@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyRound, Loader2, LogIn, ScanLine } from "lucide-react";
-import { verifyCredentials, type AccountRecord } from "@/lib/accounts";
+import { signInWithCard, CardSignInError } from "@/lib/auth";
 
 interface LoginGateProps {
-  onLogin: (account: AccountRecord) => void;
+  /** サインイン成功時。実際のログイン状態は Firebase Auth の購読側で反映される */
+  onLogin?: () => void;
 }
 
 export default function LoginGate({ onLogin }: LoginGateProps) {
@@ -21,16 +22,15 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
       setChecking(true);
       setError(null);
       try {
-        const account = await verifyCredentials(rawId, rawPassword);
-        if (!account) {
-          setError("IDまたはパスワードが違います。カードの記載をご確認ください。");
-          return false;
-        }
-        onLogin(account);
+        await signInWithCard(rawId, rawPassword);
+        onLogin?.();
         return true;
       } catch (e) {
-        console.error(e);
-        setError("ログイン処理に失敗しました。通信環境をご確認ください。");
+        setError(
+          e instanceof CardSignInError
+            ? e.message
+            : "ログイン処理に失敗しました。通信環境をご確認ください。"
+        );
         return false;
       } finally {
         setChecking(false);

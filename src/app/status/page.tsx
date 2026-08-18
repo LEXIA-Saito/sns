@@ -77,11 +77,24 @@ async function probeDatabase(): Promise<DatabaseProbe> {
     });
     const latencyMs = Date.now() - startedAt;
 
+    // 401/403 はルールが効いている状態。SSR は未ログインなので読めないのが正しい
+    if (response.status === 401 || response.status === 403) {
+      return {
+        level: "ok",
+        label: "ルールで保護されています",
+        detail:
+          "未ログインの読み取りが拒否されました。投稿はカードでログインした端末からのみ読み書きできます（このページからは中身を表示できません）。",
+        posts: [],
+        checkedAt,
+        latencyMs,
+      };
+    }
+
     if (!response.ok) {
       return {
-        level: response.status === 401 || response.status === 403 ? "error" : "warning",
+        level: "warning",
         label: "データベース応答に問題があります",
-        detail: `Realtime Database が HTTP ${response.status} を返しました。セキュリティルールやURLを確認してください。`,
+        detail: `Realtime Database が HTTP ${response.status} を返しました。URLやルールを確認してください。`,
         posts: [],
         checkedAt,
         latencyMs,

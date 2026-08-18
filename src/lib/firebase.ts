@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getDatabase, type Database } from "firebase/database";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getAuth, type Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -19,4 +20,16 @@ export const db: Database = getDatabase(
   firebaseConfig.databaseURL || "https://placeholder.firebaseio.com"
 );
 export const storage: FirebaseStorage = getStorage(app);
+/**
+ * Auth はクライアントでのみ、かつ設定が入っているときだけ初期化する。
+ * （未設定の環境でモジュール読み込み時に落ちるのを避けるため）
+ */
+let authInstance: Auth | null = null;
+
+export function getAuthOrNull(): Auth | null {
+  if (typeof window === "undefined") return null;
+  if (!firebaseConfig.apiKey || !firebaseConfig.appId) return null;
+  if (!authInstance) authInstance = getAuth(app);
+  return authInstance;
+}
 export default app;

@@ -1,0 +1,45 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "posts": {
+      ".read": "auth != null",
+      ".indexOn": ["createdAt"],
+
+      "$postId": {
+        ".write": "auth != null && (!data.exists() ? newData.child('accountId').val() === auth.uid : (data.child('accountId').val() === auth.uid || auth.uid === '26-000'))",
+        ".validate": "newData.hasChildren(['accountId', 'name', 'role', 'text', 'createdAt'])",
+
+        "accountId": { ".validate": "newData.val() === auth.uid || auth.uid === '26-000'" },
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40" },
+        "role": { ".validate": "newData.val() === 'academy' || newData.val() === 'lom'" },
+        "text": { ".validate": "newData.isString() && newData.val().length <= 2000" },
+        "avatarUrl": { ".validate": "newData.isString()" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "media": {
+          "type": { ".validate": "newData.val() === 'image' || newData.val() === 'video'" },
+          "url": { ".validate": "newData.isString()" },
+          "path": { ".validate": "newData.isString()" },
+          "$other": { ".validate": false }
+        },
+
+        "comments": {
+          "$commentId": {
+            ".write": "auth != null && (!data.exists() ? newData.child('accountId').val() === auth.uid : (data.child('accountId').val() === auth.uid || auth.uid === '26-000'))",
+            ".validate": "newData.hasChildren(['accountId', 'name', 'text', 'createdAt'])",
+            "accountId": { ".validate": "newData.val() === auth.uid || auth.uid === '26-000'" },
+            "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40" },
+            "text": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
+            "avatarUrl": { ".validate": "newData.isString()" },
+            "createdAt": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

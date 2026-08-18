@@ -9,7 +9,6 @@ export const DEMO_SESSION: Session = {
   accountId: "26-000",
   name: "齋藤 雅人",
   role: "academy",
-  loginAt: 0,
 };
 
 const MINUTE = 60_000;

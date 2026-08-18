@@ -4,13 +4,12 @@
  *
  *   node scripts/generate-accounts.mjs --count 85 --base https://sns26.vercel.app
  *
- * 出力は2つ。
- *   src/lib/account-hashes.json … アプリが照合に使うハッシュ（コミットする。平文パスワードは入らない）
- *   out/accounts.csv            … カード印刷用のID・パスワード・QR URL（gitignore。配布前に紛失しないこと）
+ * 出力は out/accounts.csv（カード印刷用のID・パスワード・QR URL。gitignore）。
+ * 発行したら scripts/provision-auth-users.mjs で Firebase Auth にユーザーを作る。
  *
  * 予備カードは「原本のコピー」運用（委員長判断）のため、予備セット分のIDは発行しない。
  */
-import { createHash, randomInt } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -41,10 +40,6 @@ function makePassword() {
   return out;
 }
 
-export function hashCredentials(id, password) {
-  return createHash("sha256").update(`${id}:${password}`).digest("hex");
-}
-
 function main() {
   const { count, base, prefix } = parseArgs(process.argv.slice(2));
   if (!Number.isInteger(count) || count < 1 || count > 999) {
@@ -62,24 +57,9 @@ function main() {
       id,
       password,
       admin: serial === "000",
-      hash: hashCredentials(id, password),
       url: `${base}/?id=${id}&k=${password}`,
     });
   }
-
-  const hashesPath = resolve(ROOT, "src/lib/account-hashes.json");
-  writeFileSync(
-    hashesPath,
-    `${JSON.stringify(
-      {
-        version: 1,
-        note: "アカウントカードのID/パスワード照合用ハッシュ。scripts/generate-accounts.mjs で再生成できる",
-        accounts: rows.map(({ id, hash, admin }) => (admin ? { id, hash, admin } : { id, hash })),
-      },
-      null,
-      2
-    )}\n`
-  );
 
   const csvPath = resolve(ROOT, "out/accounts.csv");
   mkdirSync(dirname(csvPath), { recursive: true });
@@ -90,8 +70,8 @@ function main() {
   writeFileSync(csvPath, `${csv}\n`);
 
   console.log(`発行: 参加者${count}件 + 運営用1件`);
-  console.log(`  照合用ハッシュ: ${hashesPath}`);
   console.log(`  カード印刷用CSV: ${csvPath}（gitignore対象。取り扱い注意）`);
+  console.log("  次にやること: node scripts/provision-auth-users.mjs で Firebase Auth に登録");
 }
 
 main();

@@ -1,15 +1,7 @@
-import accountData from "./account-hashes.json";
-
-export interface AccountRecord {
-  /** ログインID（例: 26-001） */
-  id: string;
-  /** sha256(`${id}:${password}`) の16進 */
-  hash: string;
-  /** 運営用アカウント。すべての投稿を編集・削除できる */
-  admin?: boolean;
-}
-
-const ACCOUNTS: AccountRecord[] = accountData.accounts as AccountRecord[];
+/**
+ * アカウントカードの記載内容（ログインID・パスワード）の整形。
+ * 認証そのものは Firebase Auth が行う（src/lib/auth.ts）。
+ */
 
 /** 全角英数字・記号を半角に寄せる */
 function toHalfWidth(value: string): string {
@@ -38,33 +30,3 @@ export function normalizeAccountId(raw: string): string {
 export function normalizePassword(raw: string): string {
   return toHalfWidth(raw).toUpperCase();
 }
-
-async function sha256Hex(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/**
- * カードのID・パスワードを照合する。一致すればアカウント、しなければ null。
- * 照合はハッシュ同士の比較なので、平文パスワードはアプリ側に持たない。
- */
-export async function verifyCredentials(
-  rawId: string,
-  rawPassword: string
-): Promise<AccountRecord | null> {
-  const id = normalizeAccountId(rawId);
-  const password = normalizePassword(rawPassword);
-  if (!id || !password) return null;
-
-  const account = ACCOUNTS.find((a) => a.id === id);
-  if (!account) return null;
-
-  const hash = await sha256Hex(`${id}:${password}`);
-  return hash === account.hash ? account : null;
-}
-
-/** 発行済みアカウント数（運営用を含む） */
-export const ACCOUNT_COUNT = ACCOUNTS.length;

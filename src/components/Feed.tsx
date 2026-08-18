@@ -14,13 +14,12 @@ import type { Post, AuthorRole } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { useNow } from "@/lib/useNow";
 import {
-  clearSession,
-  loadSession,
-  readLegacyProfile,
-  saveSession,
+  buildSession,
+  loadProfile,
+  saveProfile,
   type Session,
 } from "@/lib/session";
-import type { AccountRecord } from "@/lib/accounts";
+import { onAuthStateChanged, signOutCard } from "@/lib/auth";
 import { DEMO_SESSION, buildDemoPosts } from "@/lib/demo";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
@@ -49,7 +48,7 @@ export default function Feed() {
   // デザイン確認用。?demo=1 で開くとログインなしでダミーデータを表示する
   const [demo, setDemo] = useState(false);
 
-  // 保存済みセッションの復元(?demo=1 のときはダミーのセッション)
+  // ログイン状態は Firebase Auth が持つ。端末に残るので再訪時は自動で復帰する
   useEffect(() => {
     const isDemo = new URLSearchParams(window.location.search).get("demo") === "1";
     setDemo(isDemo);
@@ -57,10 +56,15 @@ export default function Feed() {
       setSession(DEMO_SESSION);
       setPosts(buildDemoPosts(Date.now()));
       setLoading(false);
-    } else {
-      setSession(loadSession());
+      setSessionReady(true);
+      return;
     }
-    setSessionReady(true);
+
+    const unsubscribe = onAuthStateChanged((user) => {
+      setSession(user ? buildSession(user.uid, loadProfile(user.uid)) : null);
+      setSessionReady(true);
+    });
+    return () => unsubscribe();
   }, []);
 
   // 名前が未設定なら、プロフィール設定を必ず通す
@@ -68,24 +72,14 @@ export default function Feed() {
     if (session && !session.name) setProfileOpen(true);
   }, [session]);
 
-  const handleLogin = (account: AccountRecord) => {
-    const legacy = readLegacyProfile();
-    const next: Session = {
-      accountId: account.id,
-      ...(account.admin ? { admin: true } : {}),
-      name: legacy.name,
-      role: legacy.role,
-      avatarUrl: legacy.avatarUrl,
-      loginAt: Date.now(),
-    };
-    saveSession(next);
-    setSession(next);
-  };
-
-  const handleLogout = () => {
-    clearSession();
-    setSession(null);
+  const handleLogout = async () => {
     setProfileOpen(false);
+    try {
+      await signOutCard();
+    } catch (e) {
+      console.error(e);
+      alert("ログアウトに失敗しました。通信環境をご確認ください。");
+    }
   };
 
   const handleProfileSave = (
@@ -94,9 +88,8 @@ export default function Feed() {
     avatarUrl?: string
   ) => {
     if (!session) return;
-    const next: Session = { ...session, name, role, avatarUrl };
-    saveSession(next);
-    setSession(next);
+    saveProfile(session.accountId, { name, role, avatarUrl });
+    setSession({ ...session, name, role, avatarUrl });
   };
 
   // リアルタイム購読
@@ -139,7 +132,7 @@ export default function Feed() {
   }
 
   if (!session) {
-    return <LoginGate onLogin={handleLogin} />;
+    return <LoginGate />;
   }
 
   return (
@@ -309,7 +302,7 @@ export default function Feed() {
         defaultRole={session.role}
         defaultAvatarUrl={session.avatarUrl}
         onSave={handleProfileSave}
-        onLogout={handleLogout}
+        onLogout={() => void handleLogout()}
       />
     </div>
   );

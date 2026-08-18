@@ -10,7 +10,7 @@
 
 ## 主な機能
 
-- ✅ **アカウントカードでログイン** — 配布カード記載のログインID・パスワードで入場
+- ✅ **アカウントカードでログイン（Firebase Authentication）** — 配布カード記載のログインID・パスワードで入場
   - カードのQRコード(`/?id=26-001&k=XXXXXX`)から開くと自動ログイン
   - 一度ログインすればその端末では入力不要(9/8配布 〜 10/19本番の携帯期間を想定)
 - ✅ **プロフィール** — 表示名・立場(アカデミー / LOM)・アバター画像
@@ -72,20 +72,41 @@ posts/
 npm run accounts -- --count 85 --base https://sns26.vercel.app
 ```
 
-出力は2つ。
+出力は `out/accounts.csv`(ログインID・パスワード・QR用URL)。**gitignore対象**で、カード印刷の入稿データになる。紛失注意。
 
-| ファイル | 内容 | 扱い |
-|---|---|---|
-| `src/lib/account-hashes.json` | 照合用のハッシュのみ | **コミットする**(平文パスワードは入らない) |
-| `out/accounts.csv` | ログインID・パスワード・QR用URL | **gitignore対象**。カード印刷の入稿データ。紛失注意 |
+発行したら、Firebase Authentication にユーザーを作る。
+
+```bash
+# Firebaseコンソール > Authentication > Sign-in method で「メール/パスワード」を有効化してから
+GOOGLE_APPLICATION_CREDENTIALS=./service-account.json \
+  node scripts/provision-auth-users.mjs --project jc26-7dfdc
+```
+
+- 認証は **Firebase Authentication のメール/パスワード**。参加者はメールを持たない運用なので、
+  ログインIDから `26-001@sns26.local` という識別用アドレスを機械的に作っている(メールは届かない/送らない)
+- **uid はカード番号そのもの**(`26-001`)。データベースのルールが uid で投稿の持ち主を判定する
+- 同じIDが既にある場合はパスワードを更新する(カードを刷り直したとき用)
 
 - ID は `26-001` 〜 `26-085`。`26-000` は運営用(全投稿の編集・削除が可能)
-- パスワードは紛らわしい文字(`0` `O` `1` `I`)を除いた6文字
+- パスワードは紛らわしい文字(`0` `O` `1` `I`)を除いた6文字(Firebase Authの最低文字数は6)
 - 予備カードは「原本のコピー」運用のため、予備セット用のIDは発行しない
-- 再発行するとハッシュが変わり、**印刷済みカードは使えなくなる**。カード入稿後は実行しないこと
+- 再発行して登録し直すと、**印刷済みカードのパスワードは使えなくなる**。カード入稿後は実行しないこと
 
-> ⚠️ 照合ハッシュはブラウザ側に配信される。これは「誰の投稿か」を成立させるためのカード認証であり、
-> 総当たりに耐える強度は持たせていない。期間限定の例会運用を前提とした割り切り。
+## セキュリティルール
+
+`database.rules.json` / `storage.rules` に入っている。デプロイは次のとおり。
+
+```bash
+firebase deploy --only database,storage --project jc26-7dfdc
+```
+
+- 投稿の読み取りは**ログイン済みのみ**。未ログインのRESTアクセスは401になる
+- 投稿・コメントは `accountId` が自分の uid と一致するときだけ書き込める(＝他人の投稿を書き換えられない)
+- 運営用 `26-000` だけは全投稿を編集・削除できる
+- 画像・動画のアップロードもログイン必須(投稿50MB / アイコン5MB、画像・動画のみ)
+
+> ⚠️ ルールを反映すると、ログイン機能の入っていない旧バージョンからは読み書きできなくなる。
+> **本番(main)にログイン機能を入れてから**ルールをデプロイすること。
 
 ## デザインテーマの切り替え
 
@@ -130,36 +151,10 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=取得したsenderId
 NEXT_PUBLIC_FIREBASE_APP_ID=取得したappId
 ```
 
-### 3. Firebase 側のルール設定(認証なし運用)
+### 3. Firebase 側の設定
 
-**Realtime Database のルール**(コンソール → Realtime Database → ルール):
-
-```json
-{
-  "rules": {
-    "posts": {
-      ".read": true,
-      ".write": true,
-      ".indexOn": ["createdAt"]
-    }
-  }
-}
-```
-
-**Storage のルール**(コンソール → Storage → ルール):
-
-```
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /posts/{file} {
-      allow read: if true;
-      allow write: if request.resource.size < 50 * 1024 * 1024
-        && request.resource.contentType.matches('image/.*|video/.*');
-    }
-  }
-}
-```
+ルールはリポジトリ内の `database.rules.json` / `storage.rules` を `firebase deploy` で反映する
+(上の「セキュリティルール」を参照)。あわせて **Authentication → Sign-in method → メール/パスワード** を有効化する。
 
 **Storage の CORS 設定**(画像・動画アップロードで `blocked by CORS policy` が出る場合):
 
@@ -183,7 +178,7 @@ gcloud storage buckets update gs://jc26-7dfdc.appspot.com --cors-file=firebase-s
 gcloud storage buckets describe gs://jc26-7dfdc.firebasestorage.app --format='default(cors_config)'
 ```
 
-> ⚠️ 認証なしの公開運用です。例会など限られた期間での利用を想定しています。長期公開する場合はルールの見直しを推奨します。
+> ⚠️ 参加者の認証はアカウントカード配布によるものです。例会など限られた期間での利用を想定しています。
 
 ### 4. ローカルで起動
 
