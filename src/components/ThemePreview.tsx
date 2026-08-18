@@ -50,9 +50,10 @@ export default function ThemePreview() {
     const isPreview = params.get("preview") === "1";
     const fromUrl = params.get("theme");
     const saved = localStorage.getItem(STORAGE_KEY);
-    const key = fromUrl ?? saved ?? DEFAULT_THEME_KEY;
+    // 保存した配色を引き継ぐのはレビュー中だけ。通常の利用では既定の配色に戻す
+    const key = fromUrl ?? (isPreview ? saved ?? DEFAULT_THEME_KEY : DEFAULT_THEME_KEY);
 
-    if (fromUrl || saved) applyTheme(key);
+    if (fromUrl || isPreview) applyTheme(key);
     if (!isPreview) return;
 
     setActive(key);
