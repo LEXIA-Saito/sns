@@ -154,7 +154,7 @@ export default async function StatusPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-ink-950 px-4 py-6 text-white">
+    <main className="min-h-screen bg-media px-4 py-6 text-white">
       <div className="mx-auto max-w-4xl">
         <Link
           href="/"
@@ -223,7 +223,7 @@ export default async function StatusPage() {
                 </div>
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
                   <div
-                    className="h-full rounded-full bg-white"
+                    className="h-full rounded-full bg-surface"
                     style={{ width: `${(configuredCount / requiredEnv.length) * 100}%` }}
                   />
                 </div>

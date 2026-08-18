@@ -86,8 +86,8 @@ export default function PostComposer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/40 p-0 sm:items-center sm:p-4">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/40 p-0 sm:items-center sm:p-4">
+      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl">
         {/* ヘッダー */}
         <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
           <h2 className="text-base font-semibold text-ink-900">投稿する</h2>
@@ -123,7 +123,7 @@ export default function PostComposer({
             </div>
             <button
               onClick={onProfileEdit}
-              className="rounded-md border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+              className="rounded-md border border-ink-200 bg-surface px-3 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
             >
               変更
             </button>
@@ -145,7 +145,7 @@ export default function PostComposer({
 
           {/* メディアプレビュー */}
           {preview && file && (
-            <div className="relative overflow-hidden rounded-lg border border-ink-200 bg-ink-950">
+            <div className="relative overflow-hidden rounded-lg border border-ink-200 bg-media">
               {file.type.startsWith("video/") ? (
                 <video src={preview} className="max-h-64 w-full object-contain" controls />
               ) : (
@@ -154,7 +154,7 @@ export default function PostComposer({
               )}
               <button
                 onClick={clearFile}
-                className="absolute right-2 top-2 rounded-full bg-ink-950/70 p-1.5 text-white transition hover:bg-ink-950"
+                className="absolute right-2 top-2 rounded-full bg-media/70 p-1.5 text-white transition hover:bg-media"
                 aria-label="メディアを削除"
               >
                 <X size={16} />

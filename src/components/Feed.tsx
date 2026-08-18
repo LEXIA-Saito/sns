@@ -145,7 +145,7 @@ export default function Feed() {
   return (
     <div className="min-h-screen bg-canvas">
       {/* ヘッダー */}
-      <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-ink-200 bg-surface/85 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -204,7 +204,7 @@ export default function Feed() {
             <p className="mt-3 text-sm">読み込み中...</p>
           </div>
         ) : error === "permission" ? (
-          <div className="mx-auto max-w-md rounded-xl border border-ink-300 bg-white px-5 py-6 text-center">
+          <div className="mx-auto max-w-md rounded-xl border border-ink-300 bg-surface px-5 py-6 text-center">
             <p className="text-base font-semibold text-ink-900">
               データベースに接続できません
             </p>
@@ -242,14 +242,14 @@ export default function Feed() {
 
       {qrOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/60 px-5 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 px-5 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="qr-title"
           onClick={() => setQrOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl"
+            className="w-full max-w-sm rounded-2xl bg-surface p-5 text-center shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3">
@@ -274,7 +274,7 @@ export default function Feed() {
             <img
               src="/QR_349524.png"
               alt="26アカデミー例会SNSのQRコード"
-              className="mx-auto mt-5 aspect-square w-full max-w-72 rounded-xl border border-ink-200 bg-white p-3 object-contain"
+              className="mx-auto mt-5 aspect-square w-full max-w-72 rounded-xl border border-ink-200 bg-surface p-3 object-contain"
             />
           </div>
         </div>

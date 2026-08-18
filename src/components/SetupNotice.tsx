@@ -8,7 +8,7 @@ export default function SetupNotice() {
         <div className="text-sm text-ink-700">
           <p className="font-semibold">Firebaseの設定が未完了です</p>
           <p className="mt-1 text-xs leading-relaxed text-ink-500">
-            <code className="rounded bg-white px-1">.env.local</code> に
+            <code className="rounded bg-surface px-1">.env.local</code> に
             FirebaseのWebアプリ設定(apiKey / appId など)を入力すると、投稿・コメントが有効になります。Firebaseコンソール →
             プロジェクトの設定 → マイアプリ から取得できます。
           </p>

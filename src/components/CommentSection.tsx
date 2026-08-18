@@ -84,7 +84,7 @@ export default function CommentSection({
                 handleSend();
               }
             }}
-            className="block h-9 w-full resize-none rounded-md border border-ink-200 bg-white px-3 py-2 text-sm leading-5 text-ink-800 outline-none focus:border-accent"
+            className="block h-9 w-full resize-none rounded-md border border-ink-200 bg-surface px-3 py-2 text-sm leading-5 text-ink-800 outline-none focus:border-accent"
           />
         </div>
         <button

@@ -88,7 +88,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-7 rounded-2xl bg-white p-5 shadow-2xl"
+          className="mt-7 rounded-2xl bg-surface p-5 shadow-2xl"
         >
           <label className="block text-xs font-medium text-ink-500" htmlFor="login-id">
             ログインID

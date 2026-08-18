@@ -30,6 +30,9 @@ const config: Config = {
           soft: v("accent-soft"),
         },
         canvas: v("canvas"),
+        surface: v("surface"),
+        media: v("media"),
+        overlay: v("overlay"),
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

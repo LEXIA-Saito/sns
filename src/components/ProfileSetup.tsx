@@ -75,8 +75,8 @@ export default function ProfileSetup({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/40 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl bg-surface shadow-xl">
         <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">
           <div>
             <h2 className="text-base font-semibold text-ink-900">

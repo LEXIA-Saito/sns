@@ -66,7 +66,7 @@ export default function PostCard({ post, session, now }: PostCardProps) {
   };
 
   return (
-    <article className="animate-fade-in-up overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm">
+    <article className="animate-fade-in-up overflow-hidden rounded-xl border border-ink-200 bg-surface shadow-sm">
       {/* ヘッダー */}
       <header className="flex items-start gap-3 px-4 pt-4">
         <Avatar name={post.name} role={post.role} avatarUrl={post.avatarUrl} />
@@ -115,7 +115,7 @@ export default function PostCard({ post, session, now }: PostCardProps) {
 
       {/* メディア */}
       {post.media && (
-        <div className="bg-ink-950">
+        <div className="bg-media">
           {post.media.type === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -160,8 +160,8 @@ export default function PostCard({ post, session, now }: PostCardProps) {
       )}
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-950/40 p-0 sm:items-center sm:p-4">
-          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/40 p-0 sm:items-center sm:p-4">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl">
             <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
               <h2 className="text-base font-semibold text-ink-900">投稿を編集</h2>
               <button
