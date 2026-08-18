@@ -13,16 +13,20 @@ import {
 import type { Post, AuthorRole } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { useNow } from "@/lib/useNow";
+import {
+  clearSession,
+  loadSession,
+  readLegacyProfile,
+  saveSession,
+  type Session,
+} from "@/lib/session";
+import type { AccountRecord } from "@/lib/accounts";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
-import OpeningAnimation from "./OpeningAnimation";
+import LoginGate from "./LoginGate";
 import SetupNotice from "./SetupNotice";
 import ProfileSetup from "./ProfileSetup";
 import Avatar from "./Avatar";
-
-const NAME_KEY = "academy26_name";
-const ROLE_KEY = "academy26_role";
-const AVATAR_KEY = "academy26_avatar";
 
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -31,9 +35,9 @@ export default function Feed() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [role, setRole] = useState<AuthorRole>("academy");
-  const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
+  const [session, setSession] = useState<Session | null>(null);
+  // localStorageの読み出しが終わるまでは画面を出さない(ログイン画面のちらつき防止)
+  const [sessionReady, setSessionReady] = useState(false);
   // 1分ごとに現在時刻を更新し「◯分前」をリアルタイム表示
   const now = useNow(60_000);
 
@@ -41,40 +45,51 @@ export default function Feed() {
     !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
     !!process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
 
-  // 名前・立場・アバターをローカル保存から復元
+  // 保存済みセッションの復元
   useEffect(() => {
-    const savedName = localStorage.getItem(NAME_KEY);
-    if (savedName) setName(savedName);
-    const savedRole = localStorage.getItem(ROLE_KEY);
-    if (savedRole === "academy" || savedRole === "lom") setRole(savedRole);
-    const savedAvatarUrl = localStorage.getItem(AVATAR_KEY);
-    if (savedAvatarUrl) setAvatarUrl(savedAvatarUrl);
+    setSession(loadSession());
+    setSessionReady(true);
   }, []);
 
-  const handleNameChange = (v: string) => {
-    setName(v);
-    localStorage.setItem(NAME_KEY, v);
+  // 名前が未設定なら、プロフィール設定を必ず通す
+  useEffect(() => {
+    if (session && !session.name) setProfileOpen(true);
+  }, [session]);
+
+  const handleLogin = (account: AccountRecord) => {
+    const legacy = readLegacyProfile();
+    const next: Session = {
+      accountId: account.id,
+      ...(account.admin ? { admin: true } : {}),
+      name: legacy.name,
+      role: legacy.role,
+      avatarUrl: legacy.avatarUrl,
+      loginAt: Date.now(),
+    };
+    saveSession(next);
+    setSession(next);
   };
 
-  const handleRoleChange = (v: AuthorRole) => {
-    setRole(v);
-    localStorage.setItem(ROLE_KEY, v);
+  const handleLogout = () => {
+    clearSession();
+    setSession(null);
+    setProfileOpen(false);
   };
 
-  const handleProfileSave = (newName: string, newRole: AuthorRole, newAvatarUrl?: string) => {
-    handleNameChange(newName);
-    handleRoleChange(newRole);
-    setAvatarUrl(newAvatarUrl);
-    if (newAvatarUrl) {
-      localStorage.setItem(AVATAR_KEY, newAvatarUrl);
-    } else {
-      localStorage.removeItem(AVATAR_KEY);
-    }
+  const handleProfileSave = (
+    name: string,
+    role: AuthorRole,
+    avatarUrl?: string
+  ) => {
+    if (!session) return;
+    const next: Session = { ...session, name, role, avatarUrl };
+    saveSession(next);
+    setSession(next);
   };
 
   // リアルタイム購読
   useEffect(() => {
-    if (!firebaseConfigured) {
+    if (!firebaseConfigured || !session) {
       setLoading(false);
       return;
     }
@@ -104,15 +119,23 @@ export default function Feed() {
     }
     return () => unsub?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firebaseConfigured]);
+  }, [firebaseConfigured, session?.accountId]);
+
+  if (!sessionReady) {
+    return <div className="min-h-screen bg-canvas" />;
+  }
+
+  if (!session) {
+    return <LoginGate onLogin={handleLogin} />;
+  }
 
   return (
-    <div className="min-h-screen bg-ink-50">
-      <OpeningAnimation />
+    <div className="min-h-screen bg-canvas">
       {/* ヘッダー */}
       <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur">
         <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo_26.png"
               alt="26アカデミー ロゴ"
@@ -130,7 +153,12 @@ export default function Feed() {
               className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden border border-ink-200 transition hover:border-ink-400"
               aria-label="プロフィール設定"
             >
-              <Avatar name={name || "?"} role={role} avatarUrl={avatarUrl} size="sm" />
+              <Avatar
+                name={session.name || "?"}
+                role={session.role}
+                avatarUrl={session.avatarUrl}
+                size="sm"
+              />
             </button>
             <Link
               href="/status"
@@ -191,9 +219,7 @@ export default function Feed() {
               <PostCard
                 key={post.id}
                 post={post}
-                commenterName={name}
-                commenterAvatarUrl={avatarUrl}
-                onCommenterNameChange={handleNameChange}
+                session={session}
                 now={now}
               />
             ))}
@@ -231,6 +257,7 @@ export default function Feed() {
                 <X size={18} />
               </button>
             </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/QR_349524.png"
               alt="26アカデミー例会SNSのQRコード"
@@ -243,7 +270,7 @@ export default function Feed() {
       {/* 投稿ボタン(FAB) */}
       <button
         onClick={() => setComposerOpen(true)}
-        className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-ink-900 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-ink-700 active:scale-95"
+        className="fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-fg shadow-lg transition hover:bg-accent-hover active:scale-95"
       >
         <PenSquare size={18} />
         投稿する
@@ -252,11 +279,7 @@ export default function Feed() {
       <PostComposer
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
-        defaultName={name}
-        onNameChange={handleNameChange}
-        role={role}
-        onRoleChange={handleRoleChange}
-        avatarUrl={avatarUrl}
+        session={session}
         onProfileEdit={() => {
           setComposerOpen(false);
           setProfileOpen(true);
@@ -265,11 +288,15 @@ export default function Feed() {
 
       <ProfileSetup
         open={profileOpen}
+        // 名前未設定のうちは閉じさせない(投稿者が誰か分からなくなるため)
+        required={!session.name}
+        accountId={session.accountId}
         onClose={() => setProfileOpen(false)}
-        defaultName={name}
-        defaultRole={role}
-        defaultAvatarUrl={avatarUrl}
+        defaultName={session.name}
+        defaultRole={session.role}
+        defaultAvatarUrl={session.avatarUrl}
         onSave={handleProfileSave}
+        onLogout={handleLogout}
       />
     </div>
   );

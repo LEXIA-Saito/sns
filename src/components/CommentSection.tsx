@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import type { Comment } from "@/lib/types";
+import type { Session } from "@/lib/session";
 import { addComment } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
@@ -10,34 +11,31 @@ import Avatar from "./Avatar";
 interface CommentSectionProps {
   postId: string;
   comments: Comment[];
-  defaultName: string;
-  commenterAvatarUrl?: string;
-  onNameChange: (name: string) => void;
+  session: Session;
   now: number;
 }
 
 export default function CommentSection({
   postId,
   comments,
-  defaultName,
-  commenterAvatarUrl,
-  onNameChange,
+  session,
   now,
 }: CommentSectionProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
-    const name = defaultName.trim();
     const body = text.trim();
-    if (!name) {
-      alert("お名前を入力してください");
-      return;
-    }
     if (!body) return;
     setSending(true);
     try {
-      await addComment(postId, name, body, commenterAvatarUrl);
+      await addComment(
+        postId,
+        session.accountId,
+        session.name,
+        body,
+        session.avatarUrl
+      );
       setText("");
     } catch (e) {
       console.error(e);
@@ -69,32 +67,31 @@ export default function CommentSection({
       )}
 
       <div className="flex items-end gap-2">
-        <div className="flex-1">
-          <input
-            type="text"
-            value={defaultName}
-            onChange={(e) => onNameChange(e.target.value)}
-            placeholder="お名前"
-            className="mb-1.5 w-28 rounded-md border border-ink-200 bg-white px-2 py-1 text-xs text-ink-800 outline-none focus:border-ink-500"
+        <div className="flex flex-1 items-end gap-2">
+          <Avatar
+            name={session.name || "?"}
+            role={session.role}
+            avatarUrl={session.avatarUrl}
+            size="sm"
           />
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="コメントを入力..."
+            placeholder={`${session.name || "あなた"} としてコメント...`}
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 handleSend();
               }
             }}
-            className="block h-9 w-full resize-none rounded-md border border-ink-200 bg-white px-3 py-2 text-sm leading-5 text-ink-800 outline-none focus:border-ink-500"
+            className="block h-9 w-full resize-none rounded-md border border-ink-200 bg-white px-3 py-2 text-sm leading-5 text-ink-800 outline-none focus:border-accent"
           />
         </div>
         <button
           type="button"
           onClick={handleSend}
           disabled={sending || !text.trim()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-ink-900 text-white transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="コメントを送信"
         >
           <Send size={16} />

@@ -1,5 +1,8 @@
 import type { Config } from "tailwindcss";
 
+/** CSS変数（src/app/theme.css）を参照する色。テーマ差し替えはtheme.cssだけで完結する */
+const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
+
 const config: Config = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,18 +11,25 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          50: "#f7f7f8",
-          100: "#ededf0",
-          200: "#d9d9de",
-          300: "#b8b8c0",
-          400: "#8e8e99",
-          500: "#6b6b75",
-          600: "#54545c",
-          700: "#3f3f46",
-          800: "#27272a",
-          900: "#18181b",
-          950: "#09090b",
+          50: v("ink-50"),
+          100: v("ink-100"),
+          200: v("ink-200"),
+          300: v("ink-300"),
+          400: v("ink-400"),
+          500: v("ink-500"),
+          600: v("ink-600"),
+          700: v("ink-700"),
+          800: v("ink-800"),
+          900: v("ink-900"),
+          950: v("ink-950"),
         },
+        accent: {
+          DEFAULT: v("accent"),
+          hover: v("accent-hover"),
+          fg: v("accent-fg"),
+          soft: v("accent-soft"),
+        },
+        canvas: v("canvas"),
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

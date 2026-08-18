@@ -1,0 +1,351 @@
+{
+  "version": 1,
+  "note": "アカウントカードのID/パスワード照合用ハッシュ。scripts/generate-accounts.mjs で再生成できる",
+  "accounts": [
+    {
+      "id": "26-000",
+      "hash": "d51b96e0cee62eb2a8ad65f719e5256da486da54eae5626b56b958d024d3f117",
+      "admin": true
+    },
+    {
+      "id": "26-001",
+      "hash": "9ddf5015840380df93431b04151ec7423fa4d9c9349f3928e8d4f6c0ab2b901c"
+    },
+    {
+      "id": "26-002",
+      "hash": "73f631d50e21fdca932c1c32868529dd0c89d2aa70b46e485d1734b6a1d2788d"
+    },
+    {
+      "id": "26-003",
+      "hash": "9f335fac695f8006d77a80a16fc14116fbd073ad46e3206373d26e21001a1264"
+    },
+    {
+      "id": "26-004",
+      "hash": "500882d4ba6a81dc272356b4c52b29610fb06d53fe8ac8deca08824e7df2335c"
+    },
+    {
+      "id": "26-005",
+      "hash": "35bc0285e12458a5a2a5c4eabe66303faf33890982002639ed1a8be94fb22d54"
+    },
+    {
+      "id": "26-006",
+      "hash": "b4a89012602e9107384b31fe2c658bce245c7aabd43467b7a1cae20b74249939"
+    },
+    {
+      "id": "26-007",
+      "hash": "cac271019b06e8fedc6004daac80e2c0772463c25afb55b7e2532329b84c3f93"
+    },
+    {
+      "id": "26-008",
+      "hash": "19caffbdabb1c35d4e0f902c95467a44086ceff68c7ebf02f08761f9d6893d57"
+    },
+    {
+      "id": "26-009",
+      "hash": "8000f49749780f2f2edec449829ebf79773eedd55bf7901a9f08c1cbab6113c4"
+    },
+    {
+      "id": "26-010",
+      "hash": "319ed1a034a39b49c86a66be7e406e6f04c81865021c841c317de72e01991108"
+    },
+    {
+      "id": "26-011",
+      "hash": "0e64ae7adf7af65abb1c5c67bf0c42cc56a4fa732488aa8477cff0a3d334f7a0"
+    },
+    {
+      "id": "26-012",
+      "hash": "f6a0da78ee2157661706f8e5502325eebe7fd4d2e22cccdd3f3727a79c832131"
+    },
+    {
+      "id": "26-013",
+      "hash": "850d103a8afa331edc2583939a7e087c20a98e06b0f75d141b1e39c43e97f280"
+    },
+    {
+      "id": "26-014",
+      "hash": "6505f2be2347133d483be1cf0fe98279dcfc22f77742272964a52c6e2cfca1ea"
+    },
+    {
+      "id": "26-015",
+      "hash": "4629065a25c147e7d7f8c08c21f5ddf3ffc281235300864090390b99865a58b0"
+    },
+    {
+      "id": "26-016",
+      "hash": "f038a5b77837f271a55591bc250b696b1ed552d2ef74fe2e1ce38d19729ffded"
+    },
+    {
+      "id": "26-017",
+      "hash": "55c5808218524620efd9525ae62ca0b7586dc2f689b73a20333f2b791be19d62"
+    },
+    {
+      "id": "26-018",
+      "hash": "21b1c99a77be84508b4ebf1e569a989a7f2c22e3436c67e3569406daa9000340"
+    },
+    {
+      "id": "26-019",
+      "hash": "a7a9532ef03c4d9f065cf09d16a30867fa74157211086e91f2d3eaab53e90701"
+    },
+    {
+      "id": "26-020",
+      "hash": "92daa75f58d6ef48a947431eea79269e47976033f77b003d067237cdbf001663"
+    },
+    {
+      "id": "26-021",
+      "hash": "57e8e5764747b274fa2a4a4a4930046ce019486d5743c1055a5aeba362c21a48"
+    },
+    {
+      "id": "26-022",
+      "hash": "84fca78ed3525cbf0d340568a8f7a5348aeefc29b0fd53e103e242956f2d60df"
+    },
+    {
+      "id": "26-023",
+      "hash": "f1441eb516e4b80ed9b771b37d4314b886a6d4bb0268858555127f96edbb2d96"
+    },
+    {
+      "id": "26-024",
+      "hash": "43c6288698d3de55d514c22fefb31a9ac6939979509948f33fabbd4858f51915"
+    },
+    {
+      "id": "26-025",
+      "hash": "986a236766616c62f7faa72907f7f17ced382c05a9a5feee40c2ffc3dfec7690"
+    },
+    {
+      "id": "26-026",
+      "hash": "bfe5416e7df7cfc87c6b858011333246ad45a9975a00d30c5b4e0e11df08c079"
+    },
+    {
+      "id": "26-027",
+      "hash": "a12cc52a1b2531168a5b3bc14c20c42107f674cd718dcc42d80d1a78da6cf0c5"
+    },
+    {
+      "id": "26-028",
+      "hash": "c36c938349beee81662f99649a16a6abf64ca2494edfd376d8109e2ea84f60ac"
+    },
+    {
+      "id": "26-029",
+      "hash": "45c4b37329027069c508a62f850b5b19d1710f13b5b084acac9d6a92e66936a5"
+    },
+    {
+      "id": "26-030",
+      "hash": "37bcb83fe6ea1b2e18dffaa4c93afafc0ad88485146d0b9019e69251440614c1"
+    },
+    {
+      "id": "26-031",
+      "hash": "8449fd397e65e29677cc88b30c351e45c1b3b851a89e2e9d1c8847cdd36ddf5e"
+    },
+    {
+      "id": "26-032",
+      "hash": "3f95b3ecf7ed2339568c36dc03323581bc275d9010e9681d49d0527c92e12ad6"
+    },
+    {
+      "id": "26-033",
+      "hash": "a7e5605fd05e9c05d422952bd4f1f2d35e8581ccdb24c85e44c118193d61af92"
+    },
+    {
+      "id": "26-034",
+      "hash": "f354facbdbbb38f940f2b06d782a46f153daef1c7f2c5b2d4e108c5b401b237b"
+    },
+    {
+      "id": "26-035",
+      "hash": "0f60a16c28631a894a07917c6c1f5101960965c5c2d9ddfc2b6c2ade99576484"
+    },
+    {
+      "id": "26-036",
+      "hash": "1428f1658ab4eee29125ab0d919a62a610101d7c9f2bd10b814f647328a5e44f"
+    },
+    {
+      "id": "26-037",
+      "hash": "9f19c2330c4a9180c4a323c367e61f245fc24ccd98d9c8261f6760be65dd0c35"
+    },
+    {
+      "id": "26-038",
+      "hash": "518d8a7def4bac3988fddc4c2f3cf45a5b9530a30402fad7d529a6a06f9716f9"
+    },
+    {
+      "id": "26-039",
+      "hash": "1bb8e2b1ef5bf014c837276fb988d9a10f1528b12b637e386c9c19abed9ac3fa"
+    },
+    {
+      "id": "26-040",
+      "hash": "04495533b43bbdca2116e20e302ebf0806fea41f2f1e9d848b2ed1ff0c4e22f2"
+    },
+    {
+      "id": "26-041",
+      "hash": "281385bfa9da6a6559ae4a1fff04a8b3cf172853e4c5131a1641710747a01973"
+    },
+    {
+      "id": "26-042",
+      "hash": "7a8f726fe7236b5791d3414d288f7c71b88396e508d546298beac19009037a31"
+    },
+    {
+      "id": "26-043",
+      "hash": "2c92fba4b4388acb9ddc28bc30403f29216736edccd5dc607f931370270459a0"
+    },
+    {
+      "id": "26-044",
+      "hash": "bb7e7f19242a1455055008b759b485a861e27c983b1d3f8a6d17938d2828189b"
+    },
+    {
+      "id": "26-045",
+      "hash": "68c2a63a7ceba162aafc21b069628b66626a35d2a77f103075a7b4feb0c5b86f"
+    },
+    {
+      "id": "26-046",
+      "hash": "ae6ba2fd83ea2452e21e04073b463c5f1273dfc41f04e1c7f86e7e2140db3313"
+    },
+    {
+      "id": "26-047",
+      "hash": "b1b7c295b04b5c0179698bb1c800490b786a3fd0d5a0edf80484c5951364ff74"
+    },
+    {
+      "id": "26-048",
+      "hash": "24ac6e49eddaab3e61fb1c14456c32ff099db20e32b3d78dd149fb9ebe023fc0"
+    },
+    {
+      "id": "26-049",
+      "hash": "24b58bcd6c2e0ccb474cf4e0558a409163d0db14dbc57a46211878c0aa0d8da4"
+    },
+    {
+      "id": "26-050",
+      "hash": "0c6c8aa8f8ff0ae99016c04d77f419c3539714e7d3474edfaffaa36de3e8166b"
+    },
+    {
+      "id": "26-051",
+      "hash": "f21231a2430a2ad6a7031bffeb47b43d985725ad0c6205c50d4261fb6febf1a5"
+    },
+    {
+      "id": "26-052",
+      "hash": "e79f1b6dfb9bcdaa4d1ba7db7f45f445a3dca095fa62b0ce67b5c6be61cc0368"
+    },
+    {
+      "id": "26-053",
+      "hash": "050b84ac6704208ba9d6eacbd6631f6e43a2df6137da12ae2be1c9ae8aee96ae"
+    },
+    {
+      "id": "26-054",
+      "hash": "c15298b0690927d09dfd1e44dc0707f8cbebb0ad87cd516865358e508463ea3e"
+    },
+    {
+      "id": "26-055",
+      "hash": "07b81d8d11c2c7728a512edc0de42c3b7ab64f139eb84291302f41a96895035a"
+    },
+    {
+      "id": "26-056",
+      "hash": "7661660c13b2c1d19d4685727448748fb5f8eda6a9a587d7a0840a983ed6b8cf"
+    },
+    {
+      "id": "26-057",
+      "hash": "28906f3b7d094876f98d1ce67501ea9d82c0cb21d0331c30da6df659fa18ebfc"
+    },
+    {
+      "id": "26-058",
+      "hash": "2b2524fb3ce018ece99bb78fef1ef02b3ec75d75aa8b5807a174dfa2e8559836"
+    },
+    {
+      "id": "26-059",
+      "hash": "5ef9afa03dd6604dcd9f6e2ca77d57e0df03e7f864d02352b3d4226dbf6e48b6"
+    },
+    {
+      "id": "26-060",
+      "hash": "61a38682e9c943b2e4f89c93f69161538ed117cb4d5242153c5487944885fe2b"
+    },
+    {
+      "id": "26-061",
+      "hash": "2955d53bbc9603cf07e043f639b3c453214730b8679373ea36c2e69cb32243ad"
+    },
+    {
+      "id": "26-062",
+      "hash": "5f0a3f4eacc5c83f4ee0d8dc5f218c7a4f11b528be4e5631452ff6ddf7efa117"
+    },
+    {
+      "id": "26-063",
+      "hash": "962d37e6a1b3acd29d51f79665eea780dadafd4ded2b1957e681a3c567cc99da"
+    },
+    {
+      "id": "26-064",
+      "hash": "2dfb9251094424bd3f16a56646c8d9746054c774378af6ed711f7f538c187341"
+    },
+    {
+      "id": "26-065",
+      "hash": "e8b72108ea1dbc8f1568abea04d2ad7537a9fd971a25b725fd41074a84f0ee83"
+    },
+    {
+      "id": "26-066",
+      "hash": "6aebc037c67b495d0fe6318efc384dd087d6ffc556cbc0af4cb3620a0fd02298"
+    },
+    {
+      "id": "26-067",
+      "hash": "a358744fa71e723f2dbbe81c193c843d754f09dbe5433a68f2e375523cf62bb7"
+    },
+    {
+      "id": "26-068",
+      "hash": "7666e2f4e9b968536c310736cb06b26851e05936cb93fa1e353f626891ad9674"
+    },
+    {
+      "id": "26-069",
+      "hash": "423862ac58a1d73ebc71b12713c0d0b170455f402cd90c8d8c4f407ba73ef529"
+    },
+    {
+      "id": "26-070",
+      "hash": "1d9e21958c55947a343d7e59ce8b70a8007dfc0c801af564d82cea264b2e815a"
+    },
+    {
+      "id": "26-071",
+      "hash": "fb79add819fe24474af51390a57adb8ff85374faedf2b0dd6748540a0a579cb3"
+    },
+    {
+      "id": "26-072",
+      "hash": "8ff6b7b716522d84a3d620c366ee3d341e5a1113c218e4cb3aec45503d595fe5"
+    },
+    {
+      "id": "26-073",
+      "hash": "f7cc15768a550ef2d1281cbe32c63e99067186807d8c80dec6c31877a31cab84"
+    },
+    {
+      "id": "26-074",
+      "hash": "dfc505df80a6b82a5f102fa8031c6a8a655ad78a4ec5a7a2a43abab76d873219"
+    },
+    {
+      "id": "26-075",
+      "hash": "a9476f9a9b4aa4b59c7c976c0ee6fc2560e82b8ca6b61f44f980b6d3ebe4e514"
+    },
+    {
+      "id": "26-076",
+      "hash": "b1e04e3f82838e7626343dc1d9f11a2c91ac6517f490e567c7dabdb38943a340"
+    },
+    {
+      "id": "26-077",
+      "hash": "5776bfad976ea9539af7d59ff7f8984e61b7e07889b0d24bc9f2358d7f34838f"
+    },
+    {
+      "id": "26-078",
+      "hash": "e3e4bd59c6cf60c823a3f6573aff112839372f1c699e9907aa56ab3f263c2c4c"
+    },
+    {
+      "id": "26-079",
+      "hash": "0356f0e9b00e86407a3e8eac64f0b6e745ae7dd07f15ce5914cbc1c559bca0d1"
+    },
+    {
+      "id": "26-080",
+      "hash": "8297ca3f931346eebd6cd8369cc0f04fafead5eafdc11cd6979db1e7a7d4fe19"
+    },
+    {
+      "id": "26-081",
+      "hash": "f1eff47eae163d2fd0a9063027d0320ef01f23ae39f5e6b7376208129b00cafd"
+    },
+    {
+      "id": "26-082",
+      "hash": "3540ea4f80b7bcf0af69ca32e4ff68703953026f7a07e04b2ba994e69fc3cf44"
+    },
+    {
+      "id": "26-083",
+      "hash": "a7186cfdb966ecbe69ed9c774ced8d6054c04ddb31cc9399e604fe1d76fb9e9a"
+    },
+    {
+      "id": "26-084",
+      "hash": "217e2c0adb96956c642a048b7f86ceaf3b9bfbf45a84487cd7a38a27df4610c9"
+    },
+    {
+      "id": "26-085",
+      "hash": "68ef3b6be505bd326e16f5d3bbe45619656acb9e3042610b25dec26b40a06f39"
+    }
+  ]
+}

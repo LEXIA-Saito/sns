@@ -22,7 +22,7 @@ export default function Avatar({ name, role, avatarUrl, size = "md" }: AvatarPro
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-semibold select-none overflow-hidden",
         role === "academy"
-          ? "bg-ink-900 text-white"
+          ? "bg-accent text-accent-fg"
           : "border border-ink-300 bg-white text-ink-700",
         sizeMap[size]
       )}

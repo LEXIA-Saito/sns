@@ -53,6 +53,7 @@ export function subscribePosts(
 }
 
 export interface CreatePostInput {
+  accountId: string;
   name: string;
   role: AuthorRole;
   avatarUrl?: string;
@@ -63,9 +64,6 @@ export interface CreatePostInput {
 
 export interface UpdatePostInput {
   postId: string;
-  name: string;
-  role: AuthorRole;
-  avatarUrl?: string;
   text: string;
 }
 
@@ -146,6 +144,7 @@ export async function createPost(input: CreatePostInput): Promise<void> {
 
   const newRef = push(ref(db, POSTS_PATH));
   await set(newRef, {
+    accountId: input.accountId,
     name: input.name.trim(),
     role: input.role,
     ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
@@ -156,13 +155,10 @@ export async function createPost(input: CreatePostInput): Promise<void> {
 }
 
 /**
- * 投稿の名前・立場・本文を更新する。
+ * 投稿の本文を更新する。名前・立場はアカウント（プロフィール）側で管理するため変更しない。
  */
 export async function updatePost(input: UpdatePostInput): Promise<void> {
   await update(ref(db, `${POSTS_PATH}/${input.postId}`), {
-    name: input.name.trim(),
-    role: input.role,
-    ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
     text: input.text.trim(),
     updatedAt: serverTimestamp(),
   });
@@ -188,12 +184,14 @@ export async function deletePost(post: Post): Promise<void> {
  */
 export async function addComment(
   postId: string,
+  accountId: string,
   name: string,
   text: string,
   avatarUrl?: string
 ): Promise<void> {
   const newRef = push(ref(db, `${POSTS_PATH}/${postId}/comments`));
   await set(newRef, {
+    accountId,
     name: name.trim(),
     ...(avatarUrl ? { avatarUrl } : {}),
     text: text.trim(),

@@ -13,6 +13,8 @@ export interface Media {
 
 export interface Comment {
   id: string;
+  /** 投稿者のログインID（アカウントカード） */
+  accountId?: string;
   name: string;
   avatarUrl?: string;
   text: string;
@@ -21,6 +23,8 @@ export interface Comment {
 
 export interface Post {
   id: string;
+  /** 投稿者のログインID（アカウントカード）。本人だけが編集・削除できる */
+  accountId?: string;
   name: string;
   role: AuthorRole;
   avatarUrl?: string;

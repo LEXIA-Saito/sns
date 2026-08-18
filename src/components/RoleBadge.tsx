@@ -9,7 +9,7 @@ export default function RoleBadge({ role }: { role: AuthorRole }) {
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium leading-none",
         role === "academy"
-          ? "bg-ink-900 text-white"
+          ? "bg-accent text-accent-fg"
           : "border border-ink-300 text-ink-600"
       )}
     >

@@ -1,52 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Loader2, MessageCircle, Trash2, X, GraduationCap, Users } from "lucide-react";
-import type { AuthorRole, Post } from "@/lib/types";
+import { Edit3, Loader2, MessageCircle, Trash2, X } from "lucide-react";
+import type { Post } from "@/lib/types";
+import type { Session } from "@/lib/session";
 import { commentsToArray, deletePost, updatePost } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
 import RoleBadge from "./RoleBadge";
 import CommentSection from "./CommentSection";
-import { cn } from "@/lib/utils";
 
 interface PostCardProps {
   post: Post;
-  commenterName: string;
-  commenterAvatarUrl?: string;
-  onCommenterNameChange: (name: string) => void;
+  session: Session;
   now: number;
 }
 
-export default function PostCard({
-  post,
-  commenterName,
-  commenterAvatarUrl,
-  onCommenterNameChange,
-  now,
-}: PostCardProps) {
+export default function PostCard({ post, session, now }: PostCardProps) {
   const comments = commentsToArray(post.comments);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(post.name);
-  const [editRole, setEditRole] = useState<AuthorRole>(post.role);
   const [editText, setEditText] = useState(post.text);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // 自分の投稿のみ編集・削除できる。運営用アカウントは全投稿を操作できる
+  const canManage =
+    session.admin === true ||
+    (!!post.accountId && post.accountId === session.accountId);
+
   const startEdit = () => {
-    setEditName(post.name);
-    setEditRole(post.role);
     setEditText(post.text);
     setEditing(true);
   };
 
   const handleSave = async () => {
-    const name = editName.trim();
-    if (!name) {
-      alert("お名前を入力してください");
-      return;
-    }
     if (!editText.trim() && !post.media) {
       alert("メッセージを入力してください");
       return;
@@ -54,13 +42,7 @@ export default function PostCard({
 
     setSaving(true);
     try {
-      await updatePost({
-        postId: post.id,
-        name,
-        role: editRole,
-        avatarUrl: commenterAvatarUrl,
-        text: editText,
-      });
+      await updatePost({ postId: post.id, text: editText });
       setEditing(false);
     } catch (error) {
       console.error(error);
@@ -100,26 +82,28 @@ export default function PostCard({
             {post.updatedAt ? "（編集済み）" : ""}
           </time>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={startEdit}
-            disabled={deleting}
-            className="rounded-full p-2 text-ink-400 transition hover:bg-ink-100 hover:text-ink-800 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="投稿を編集"
-          >
-            <Edit3 size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="rounded-full p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="投稿を削除"
-          >
-            {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-          </button>
-        </div>
+        {canManage && (
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={startEdit}
+              disabled={deleting}
+              className="rounded-full p-2 text-ink-400 transition hover:bg-ink-100 hover:text-ink-800 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="投稿を編集"
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="rounded-full p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="投稿を削除"
+            >
+              {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+            </button>
+          </div>
+        )}
       </header>
 
       {/* 本文 */}
@@ -170,9 +154,7 @@ export default function PostCard({
         <CommentSection
           postId={post.id}
           comments={comments}
-          defaultName={commenterName}
-          commenterAvatarUrl={commenterAvatarUrl}
-          onNameChange={onCommenterNameChange}
+          session={session}
           now={now}
         />
       )}
@@ -195,65 +177,22 @@ export default function PostCard({
             <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink-500">
-                  お名前
-                </label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-ink-500"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-500">
-                  あなたの立場
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditRole("academy")}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
-                      editRole === "academy"
-                        ? "border-ink-900 bg-ink-900 text-white"
-                        : "border-ink-200 text-ink-600 hover:border-ink-400"
-                    )}
-                  >
-                    <GraduationCap size={16} />
-                    アカデミー
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditRole("lom")}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
-                      editRole === "lom"
-                        ? "border-ink-900 bg-ink-900 text-white"
-                        : "border-ink-200 text-ink-600 hover:border-ink-400"
-                    )}
-                  >
-                    <Users size={16} />
-                    LOMメンバー
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-ink-500">
                   メッセージ
                 </label>
                 <textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   rows={5}
-                  className="w-full resize-none rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-ink-500"
+                  className="w-full resize-none rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent"
                 />
                 {post.media && (
                   <p className="mt-2 text-xs text-ink-400">
                     添付済みの画像・動画はこの画面では変更されません。
                   </p>
                 )}
+                <p className="mt-2 text-xs text-ink-400">
+                  表示名・立場はプロフィール設定から変更できます。
+                </p>
               </div>
             </div>
 
@@ -261,7 +200,7 @@ export default function PostCard({
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink-900 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? (
                   <>

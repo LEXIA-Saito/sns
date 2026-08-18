@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { X, Camera, GraduationCap, Users, Loader2 } from "lucide-react";
+import { X, Camera, GraduationCap, Users, Loader2, LogOut } from "lucide-react";
 import type { AuthorRole } from "@/lib/types";
 import { uploadAvatarImage } from "@/lib/posts";
 import Avatar from "./Avatar";
@@ -9,20 +9,27 @@ import { cn } from "@/lib/utils";
 
 interface ProfileSetupProps {
   open: boolean;
+  /** 名前未設定のうちは閉じられない(投稿者が誰か分からなくなるため) */
+  required?: boolean;
+  accountId: string;
   onClose: () => void;
   defaultName: string;
   defaultRole: AuthorRole;
   defaultAvatarUrl?: string;
   onSave: (name: string, role: AuthorRole, avatarUrl?: string) => void;
+  onLogout: () => void;
 }
 
 export default function ProfileSetup({
   open,
+  required = false,
+  accountId,
   onClose,
   defaultName,
   defaultRole,
   defaultAvatarUrl,
   onSave,
+  onLogout,
 }: ProfileSetupProps) {
   const [name, setName] = useState(defaultName);
   const [role, setRole] = useState<AuthorRole>(defaultRole);
@@ -38,7 +45,7 @@ export default function ProfileSetup({
       alert("ファイルサイズは5MB以下にしてください");
       return;
     }
-    
+
     setIsUploading(true);
     try {
       const url = await uploadAvatarImage(f);
@@ -60,24 +67,47 @@ export default function ProfileSetup({
     onClose();
   };
 
+  const handleLogout = () => {
+    if (!confirm("ログアウトします。次に使うときはカードのIDとパスワードが必要です。")) {
+      return;
+    }
+    onLogout();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 p-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">
-          <h2 className="text-base font-semibold text-ink-900">プロフィール設定</h2>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1.5 text-ink-400 transition hover:bg-ink-100 hover:text-ink-900"
-            aria-label="閉じる"
-          >
-            <X size={20} />
-          </button>
+          <div>
+            <h2 className="text-base font-semibold text-ink-900">
+              {required ? "はじめにプロフィール設定" : "プロフィール設定"}
+            </h2>
+            <p className="mt-0.5 text-[11px] text-ink-400">カード番号 {accountId}</p>
+          </div>
+          {!required && (
+            <button
+              onClick={onClose}
+              className="rounded-full p-1.5 text-ink-400 transition hover:bg-ink-100 hover:text-ink-900"
+              aria-label="閉じる"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <div className="space-y-6 px-5 py-6">
+          {required && (
+            <p className="rounded-lg bg-ink-50 px-3 py-2.5 text-xs leading-relaxed text-ink-600">
+              投稿に表示される名前を決めてください。あとから変更できます。
+            </p>
+          )}
+
           {/* アバター画像 */}
           <div className="flex flex-col items-center">
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <div
+              className="relative group cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Avatar name={name || "?"} role={role} avatarUrl={avatarUrl} size="xl" />
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
                 {isUploading ? (
@@ -113,7 +143,7 @@ export default function ProfileSetup({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例:齋藤 雅人"
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-ink-500"
+              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent"
             />
           </div>
 
@@ -129,7 +159,7 @@ export default function ProfileSetup({
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
                   role === "academy"
-                    ? "border-ink-900 bg-ink-900 text-white"
+                    ? "border-accent bg-accent text-accent-fg"
                     : "border-ink-200 text-ink-600 hover:border-ink-400"
                 )}
               >
@@ -142,7 +172,7 @@ export default function ProfileSetup({
                 className={cn(
                   "flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition",
                   role === "lom"
-                    ? "border-ink-900 bg-ink-900 text-white"
+                    ? "border-accent bg-accent text-accent-fg"
                     : "border-ink-200 text-ink-600 hover:border-ink-400"
                 )}
               >
@@ -157,10 +187,19 @@ export default function ProfileSetup({
           <button
             onClick={handleSave}
             disabled={isUploading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink-900 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-700 disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-fg transition hover:bg-accent-hover disabled:opacity-50"
           >
             保存する
           </button>
+          {!required && (
+            <button
+              onClick={handleLogout}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 text-xs font-medium text-ink-400 transition hover:text-ink-700"
+            >
+              <LogOut size={14} />
+              ログアウト
+            </button>
+          )}
         </div>
       </div>
     </div>
