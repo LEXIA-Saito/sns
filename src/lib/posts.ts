@@ -72,6 +72,7 @@ export interface UpdatePostInput {
  */
 async function uploadMedia(
   file: File,
+  accountId: string,
   onProgress?: (percent: number) => void
 ): Promise<Media> {
   const isVideo = file.type.startsWith("video/");
@@ -80,7 +81,11 @@ async function uploadMedia(
     .toString(36)
     .slice(2)}.${ext}`;
   const sRef = storageRef(storage, path);
-  const task = uploadBytesResumable(sRef, file, { contentType: file.type });
+  // 投稿を消したときに本人が画像も消せるよう、アップロード者を記録する
+  const task = uploadBytesResumable(sRef, file, {
+    contentType: file.type,
+    customMetadata: { owner: accountId },
+  });
 
   return new Promise<Media>((resolve, reject) => {
     task.on(
@@ -108,6 +113,7 @@ async function uploadMedia(
  */
 export async function uploadAvatarImage(
   file: File,
+  accountId: string,
   onProgress?: (percent: number) => void
 ): Promise<string> {
   const ext = file.name.split(".").pop() || "jpg";
@@ -115,7 +121,10 @@ export async function uploadAvatarImage(
     .toString(36)
     .slice(2)}.${ext}`;
   const sRef = storageRef(storage, path);
-  const task = uploadBytesResumable(sRef, file, { contentType: file.type });
+  const task = uploadBytesResumable(sRef, file, {
+    contentType: file.type,
+    customMetadata: { owner: accountId },
+  });
 
   return new Promise<string>((resolve, reject) => {
     task.on(
@@ -139,7 +148,7 @@ export async function uploadAvatarImage(
 export async function createPost(input: CreatePostInput): Promise<void> {
   let media: Media | null = null;
   if (input.file) {
-    media = await uploadMedia(input.file, input.onProgress);
+    media = await uploadMedia(input.file, input.accountId, input.onProgress);
   }
 
   const newRef = push(ref(db, POSTS_PATH));

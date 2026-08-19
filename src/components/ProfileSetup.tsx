@@ -48,7 +48,7 @@ export default function ProfileSetup({
 
     setIsUploading(true);
     try {
-      const url = await uploadAvatarImage(f);
+      const url = await uploadAvatarImage(f, accountId);
       setAvatarUrl(url);
     } catch (e) {
       console.error(e);
