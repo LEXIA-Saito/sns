@@ -191,15 +191,14 @@ export default function ProfileSetup({
           >
             保存する
           </button>
-          {!required && (
-            <button
-              onClick={handleLogout}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 text-xs font-medium text-ink-400 transition hover:text-ink-700"
-            >
-              <LogOut size={14} />
-              ログアウト
-            </button>
-          )}
+          {/* 名前未設定でも、別のカードで入り直せるようにログアウトは常に出す */}
+          <button
+            onClick={handleLogout}
+            className="mt-3 flex w-full items-center justify-center gap-1.5 text-xs font-medium text-ink-400 transition hover:text-ink-700"
+          >
+            <LogOut size={14} />
+            ログアウト
+          </button>
         </div>
       </div>
     </div>
