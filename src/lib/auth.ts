@@ -62,17 +62,20 @@ export async function signInWithCard(
   }
 
   // 6週間カードを持ち歩く運用なので、端末にログイン状態を残す。
-  // 保存領域が使えない端末（プライベートモード等）でも、その回のログインは通す
-  try {
-    await setPersistence(auth, browserLocalPersistence);
-  } catch (error) {
-    console.warn("ログイン状態を端末に保存できません:", error);
-  }
+  // 保存領域が使えない端末（プライベートモード等）では保存を諦めて先へ進む。
+  // 保存処理自体が返ってこない端末もあるため、打ち切りは全体にかける
+  const signIn = (async () => {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (error) {
+      console.warn("ログイン状態を端末に保存できません:", error);
+    }
+    return signInWithEmailAndPassword(auth, cardEmail(accountId), password);
+  })();
 
   try {
-    // 端末の保存領域が使えないと処理が返ってこないことがあるため、打ち切る
     const credential = await Promise.race([
-      signInWithEmailAndPassword(auth, cardEmail(accountId), password),
+      signIn,
       new Promise<never>((_, reject) =>
         setTimeout(
           () => reject(new CardSignInError("通信に時間がかかっています。電波状況を確認して、もう一度お試しください。")),
