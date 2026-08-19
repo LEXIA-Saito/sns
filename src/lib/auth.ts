@@ -29,6 +29,9 @@ export function isAdminUser(user: User | null): boolean {
   return user?.uid === ADMIN_ACCOUNT_ID;
 }
 
+/** ログイン処理を打ち切るまでの時間 */
+const SIGN_IN_TIMEOUT_MS = 15_000;
+
 export class CardSignInError extends Error {
   constructor(message: string) {
     super(message);
@@ -67,13 +70,19 @@ export async function signInWithCard(
   }
 
   try {
-    const credential = await signInWithEmailAndPassword(
-      auth,
-      cardEmail(accountId),
-      password
-    );
+    // 端末の保存領域が使えないと処理が返ってこないことがあるため、打ち切る
+    const credential = await Promise.race([
+      signInWithEmailAndPassword(auth, cardEmail(accountId), password),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new CardSignInError("通信に時間がかかっています。電波状況を確認して、もう一度お試しください。")),
+          SIGN_IN_TIMEOUT_MS
+        )
+      ),
+    ]);
     return credential.user;
   } catch (error) {
+    if (error instanceof CardSignInError) throw error;
     throw new CardSignInError(messageFor(error));
   }
 }
