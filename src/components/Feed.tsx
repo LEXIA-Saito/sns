@@ -60,11 +60,19 @@ export default function Feed() {
       return;
     }
 
+    // 認証の初期化が返ってこない端末（保存領域が制限されている等）でも
+    // 白画面のままにせず、ログイン画面まで進める
+    const fallback = window.setTimeout(() => setSessionReady(true), 5000);
+
     const unsubscribe = onAuthStateChanged((user) => {
+      window.clearTimeout(fallback);
       setSession(user ? buildSession(user.uid, loadProfile(user.uid)) : null);
       setSessionReady(true);
     });
-    return () => unsubscribe();
+    return () => {
+      window.clearTimeout(fallback);
+      unsubscribe();
+    };
   }, []);
 
   // 名前が未設定なら、プロフィール設定を必ず通す
@@ -128,7 +136,12 @@ export default function Feed() {
   }, [firebaseConfigured, demo, session?.accountId]);
 
   if (!sessionReady) {
-    return <div className="min-h-screen bg-canvas" />;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-canvas text-ink-400">
+        <Loader2 size={28} className="animate-spin" />
+        <p className="mt-3 text-sm">読み込み中...</p>
+      </div>
+    );
   }
 
   if (!session) {

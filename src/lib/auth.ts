@@ -58,9 +58,15 @@ export async function signInWithCard(
     );
   }
 
+  // 6週間カードを持ち歩く運用なので、端末にログイン状態を残す。
+  // 保存領域が使えない端末（プライベートモード等）でも、その回のログインは通す
   try {
-    // 6週間カードを持ち歩く運用なので、端末にログイン状態を残す
     await setPersistence(auth, browserLocalPersistence);
+  } catch (error) {
+    console.warn("ログイン状態を端末に保存できません:", error);
+  }
+
+  try {
     const credential = await signInWithEmailAndPassword(
       auth,
       cardEmail(accountId),
