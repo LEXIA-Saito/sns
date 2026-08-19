@@ -34,8 +34,8 @@
   --media: 12 16 11;
   --overlay: 24 31 22;
 
-  --gate-from: 30 45 25;
-  --gate-to: 10 16 9;
-  --gate-glow: 122 168 84;
-  --theme-color: #1e2d19;
+  --gate-from: 248 252 245;
+  --gate-to: 228 240 219;
+  --gate-glow: 76 122 47;
+  --theme-color: #f8fcf5;
 }
