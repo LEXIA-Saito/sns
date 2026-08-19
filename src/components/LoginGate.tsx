@@ -75,10 +75,10 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
             alt="26アカデミー ロゴ"
             className="h-20 w-20 object-contain"
           />
-          <h1 className="mt-4 text-xl font-black tracking-wide text-white">
+          <h1 className="mt-4 text-xl font-black tracking-wide text-ink-900">
             26アカデミー 例会SNS
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-white/70">
+          <p className="mt-2 text-sm leading-relaxed text-ink-500">
             アカウントカードに記載の
             <br />
             ログインIDとパスワードを入力してください。
@@ -87,7 +87,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
 
         <form
           onSubmit={handleSubmit}
-          className="mt-7 rounded-2xl bg-surface p-5 shadow-2xl"
+          className="mt-7 rounded-2xl border border-ink-200 bg-surface p-5 shadow-xl"
         >
           <label className="block text-xs font-medium text-ink-500" htmlFor="login-id">
             ログインID
@@ -156,7 +156,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
           </div>
         </form>
 
-        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-white/50">
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-ink-400">
           <KeyRound size={12} />
           カードを紛失した場合は運営（アカデミー統括）まで
         </p>

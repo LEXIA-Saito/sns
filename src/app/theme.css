@@ -38,9 +38,9 @@
   /* モーダルの覆い（常に暗い） */
   --overlay: 9 9 11;
   /* ログイン画面の背景 */
-  --gate-from: 24 24 27;
-  --gate-to: 9 9 11;
-  --gate-glow: 63 63 70;
+  --gate-from: 255 255 255;
+  --gate-to: 238 238 241;
+  --gate-glow: 184 184 192;
   /* ブラウザのテーマカラー（アドレスバー） */
-  --theme-color: #18181b;
+  --theme-color: #ffffff;
 }
