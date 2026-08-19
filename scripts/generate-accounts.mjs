@@ -5,6 +5,7 @@
  *   node scripts/generate-accounts.mjs --count 85 --base https://sns26.vercel.app
  *
  * 出力は out/accounts.csv（カード印刷用のID・パスワード・QR URL。gitignore）。
+ * QRのURLにパスワードは載せない（カードを拾った人がそのまま入れてしまうため）。
  * 発行したら scripts/provision-auth-users.mjs で Firebase Auth にユーザーを作る。
  *
  * 予備カードは「原本のコピー」運用（委員長判断）のため、予備セット分のIDは発行しない。
@@ -57,7 +58,7 @@ function main() {
       id,
       password,
       admin: serial === "000",
-      url: `${base}/?id=${id}&k=${password}`,
+      url: `${base}/?id=${id}`,
     });
   }
 

@@ -14,8 +14,9 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
   const [password, setPassword] = useState("");
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // QRからの自動ログインを一度だけ試す
-  const autoTried = useRef(false);
+  // QRからのID自動入力を一度だけ行う
+  const prefilled = useRef(false);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   const attemptLogin = useCallback(
     async (rawId: string, rawPassword: string) => {
@@ -39,23 +40,21 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
     [onLogin]
   );
 
-  // カードのQRコード（/?id=26-001&k=XXXXXX）から開いた場合は自動でログインする
+  // カードのQR（/?id=26-001）から開いた場合はIDだけ埋める。
+  // パスワードはURLに載せず、必ず本人に入力してもらう（カードを拾われても開けないようにするため）
   useEffect(() => {
-    if (autoTried.current) return;
-    autoTried.current = true;
+    if (prefilled.current) return;
+    prefilled.current = true;
 
     const params = new URLSearchParams(window.location.search);
     const qrId = params.get("id");
-    const qrKey = params.get("k");
-    if (!qrId || !qrKey) return;
+    if (!qrId) return;
 
     setId(qrId);
-    setPassword(qrKey);
-    void attemptLogin(qrId, qrKey).then(() => {
-      // URLにパスワードを残さない
-      window.history.replaceState(null, "", window.location.pathname);
-    });
-  }, [attemptLogin]);
+    // 古いQR（パスワード付き）で開かれてもURLには残さない
+    window.history.replaceState(null, "", window.location.pathname);
+    passwordRef.current?.focus();
+  }, []);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -112,6 +111,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
           </label>
           <input
             id="login-password"
+            ref={passwordRef}
             type="text"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -149,7 +149,8 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
           <div className="mt-4 flex items-start gap-2 rounded-lg bg-ink-50 px-3 py-2.5 text-[11px] leading-relaxed text-ink-500">
             <ScanLine size={14} className="mt-0.5 shrink-0" />
             <p>
-              カードのQRコードを読み取ると、IDとパスワードは自動で入力されます。
+              カードのQRコードを読み取ると、この画面が開きます。
+              カード記載のIDとパスワードを入力してください。
               一度ログインすれば、この端末では次回から入力は不要です。
             </p>
           </div>
