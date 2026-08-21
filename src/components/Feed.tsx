@@ -183,14 +183,17 @@ export default function Feed() {
             >
               <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="sm" />
             </button>
-            <Link
-              href="/status"
-              className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
-              aria-label="SSRステータスページを表示"
-            >
-              <Database size={15} />
-              <span className="hidden sm:inline">DB状態</span>
-            </Link>
+            {/* データベースの状態は運営用カードでログインしたときだけ出す */}
+            {session.admin && (
+              <Link
+                href="/status"
+                className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+                aria-label="データベースの状態を表示"
+              >
+                <Database size={15} />
+                <span className="hidden sm:inline">DB状態</span>
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => setQrOpen(true)}

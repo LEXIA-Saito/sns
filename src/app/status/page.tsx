@@ -13,6 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { Post } from "@/lib/types";
+import AdminOnly from "@/components/AdminOnly";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -167,7 +168,8 @@ export default async function StatusPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-media px-4 py-6 text-white">
+    <AdminOnly>
+      <main className="min-h-screen bg-media px-4 py-6 text-white">
       <div className="mx-auto max-w-4xl">
         <Link
           href="/"
@@ -265,5 +267,6 @@ export default async function StatusPage() {
         </section>
       </div>
     </main>
+    </AdminOnly>
   );
 }
