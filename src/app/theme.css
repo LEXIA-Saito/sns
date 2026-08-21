@@ -4,7 +4,7 @@
  * 各値は Tailwind の <alpha-value> 対応のため「R G B」のスペース区切りで書く。
  *
  * 案: JCブルー×ゴールド
- * JCのシンボルカラーに寄せた案。理事会・審議の場で説明しやすく、公式感が一番強い。ログイン画面の光だけ金色にしてある。
+ * JCのシンボルカラーに寄せた案。文字はドット書体。ログイン画面の光だけ金色にしてある。
  */
 
 :root {
@@ -33,6 +33,10 @@
   --surface: 255 255 255;
   --media: 10 15 22;
   --overlay: 21 29 41;
+
+  /* 12ドットのビットマップ書体。縁をぼかさずドットのまま出す */
+  --font-theme: "PixelMplus12", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --font-smoothing: none;
 
   --gate-from: 247 250 255;
   --gate-to: 222 233 250;
