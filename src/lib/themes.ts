@@ -163,6 +163,8 @@ export const THEMES: ThemeOption[] = [
       "--surface": "255 255 255",
       "--media": "10 15 22",
       "--overlay": "21 29 41",
+      "--font-theme": "\"PixelMplus12\", \"Hiragino Sans\", \"Noto Sans JP\", sans-serif",
+      "--font-smoothing": "none",
       "--gate-from": "247 250 255",
       "--gate-to": "222 233 250",
       "--gate-glow": "18 63 140",
