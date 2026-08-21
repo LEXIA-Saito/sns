@@ -1,13 +1,13 @@
 @import "./theme.css";
 
 /*
- * 8×12ドットの日本語ビットマップ書体「k8x12」
- * Copyright (C) 2015-2021 Num Kadoma / https://littlelimit.net/k8x12.htm
- * 自由に使用・改変・再配布できるフリーソフトウェア（詳細は public/fonts/k8x12-LICENSE.txt）
+ * 12ドットの日本語ビットマップ書体「PixelMplus12」
+ * Copyright (C) 2002-2013 M+ FONTS PROJECT / https://github.com/itouhiro/PixelMplus
+ * M+ FONT LICENSE（改変・商用含め自由。詳細は public/fonts/PixelMplus-LICENSE.txt）
  */
 @font-face {
-  font-family: "k8x12";
-  src: url("/fonts/k8x12.woff2") format("woff2");
+  font-family: "PixelMplus12";
+  src: url("/fonts/pixelmplus12.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
