@@ -7,11 +7,20 @@ const STORAGE_KEY = "academy26_preview_theme";
 // 暗い配色だけフォームの見た目をダーク側に寄せる
 const DARK_KEYS = new Set(["midnight"]);
 
+/** どの案かに関わらず、上書きしうる変数を洗い出しておく */
+const ALL_VAR_NAMES = Array.from(
+  new Set(THEMES.flatMap((theme) => Object.keys(theme.vars)))
+);
+
 export function applyTheme(key: string) {
   const theme = THEMES.find((t) => t.key === key);
   if (!theme || typeof document === "undefined") return;
 
   const root = document.documentElement;
+  // 前の案で当てた値（書体やロゴの白抜きなど）を残さない
+  for (const name of ALL_VAR_NAMES) {
+    root.style.removeProperty(name);
+  }
   for (const [name, value] of Object.entries(theme.vars)) {
     root.style.setProperty(name, value);
   }

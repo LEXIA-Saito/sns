@@ -158,7 +158,7 @@ export default function Feed() {
             <img
               src="/logo_26.png"
               alt="26アカデミー ロゴ"
-              className="h-10 w-10 rounded-md object-contain"
+              className="app-logo h-10 w-10 rounded-md object-contain"
             />
             <div className="leading-tight">
               <h1 className="text-sm font-bold text-ink-900">26アカデミー</h1>

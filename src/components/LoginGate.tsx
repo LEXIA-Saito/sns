@@ -73,7 +73,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
           <img
             src="/logo_26.png"
             alt="26アカデミー ロゴ"
-            className="h-20 w-20 object-contain"
+            className="app-logo h-20 w-20 object-contain"
           />
           <h1 className="mt-4 text-xl font-black tracking-wide text-ink-900">
             26アカデミー 例会SNS

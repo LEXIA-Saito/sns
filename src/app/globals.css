@@ -20,7 +20,8 @@ body {
 }
 
 body {
-  font-family: var(--font-sans);
+  /* 配色案が --font-theme を指定していればそれを使う（ドット書体など） */
+  font-family: var(--font-theme, var(--font-sans));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -48,6 +49,11 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* ロゴ。モノトーンの配色案では白抜きにする（--logo-filter で切り替え） */
+.app-logo {
+  filter: var(--logo-filter, none);
 }
 
 /* ログイン画面の背景。明るい地に、アクセント色をうっすら落とす */
