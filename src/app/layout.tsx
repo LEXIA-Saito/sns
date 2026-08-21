@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { THEME_COLOR } from "./theme-meta";
 import ThemePreview from "@/components/ThemePreview";
+import WebFont from "@/components/WebFont";
 
 export const metadata: Metadata = {
   title: "26アカデミー | 例会SNS",
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
+        <WebFont />
         {children}
         <ThemePreview />
       </body>

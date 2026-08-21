@@ -20,7 +20,8 @@ body {
 }
 
 body {
-  font-family: var(--font-sans);
+  /* 配色案が --font-theme を指定していればそれを使う（ドット書体など） */
+  font-family: var(--font-theme, var(--font-sans));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

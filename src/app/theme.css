@@ -4,7 +4,7 @@
  * 各値は Tailwind の <alpha-value> 対応のため「R G B」のスペース区切りで書く。
  *
  * 案: 白線（黒地・白の枠線・白のモノトーンアイコン）
- * ダークを土台に、罫線とアイコンを純白に統一した案。ロゴも白抜きにしている。
+ * ダークを土台に、罫線とアイコンを純白に統一した案。ロゴは白抜き、文字はドット書体。
  */
 
 :root {
@@ -42,4 +42,7 @@
 
   /* ロゴを白一色にする */
   --logo-filter: brightness(0) invert(1);
+
+  /* ドット（ビットマップ）書体 */
+  --font-theme: "DotGothic16", "Hiragino Sans", "Noto Sans JP", sans-serif;
 }
