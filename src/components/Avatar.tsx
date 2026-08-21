@@ -1,9 +1,7 @@
-import type { AuthorRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface AvatarProps {
   name: string;
-  role: AuthorRole;
   avatarUrl?: string;
   size?: "sm" | "md" | "lg" | "xl";
 }
@@ -15,15 +13,12 @@ const sizeMap = {
   xl: "h-20 w-20 text-2xl",
 };
 
-export default function Avatar({ name, role, avatarUrl, size = "md" }: AvatarProps) {
+export default function Avatar({ name, avatarUrl, size = "md" }: AvatarProps) {
   const initial = name.trim().charAt(0).toUpperCase() || "?";
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-semibold select-none overflow-hidden",
-        role === "academy"
-          ? "bg-accent text-accent-fg"
-          : "border border-ink-300 bg-surface text-ink-700",
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent font-semibold text-accent-fg select-none",
         sizeMap[size]
       )}
       aria-hidden

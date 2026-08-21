@@ -7,16 +7,18 @@ import type { Session } from "@/lib/session";
 import { commentsToArray, deletePost, updatePost } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
-import RoleBadge from "./RoleBadge";
+import LevelBadge from "./LevelBadge";
 import CommentSection from "./CommentSection";
 
 interface PostCardProps {
   post: Post;
   session: Session;
+  /** 投稿者の経験値（投稿の実績から集計したもの） */
+  authorXp: number;
   now: number;
 }
 
-export default function PostCard({ post, session, now }: PostCardProps) {
+export default function PostCard({ post, session, authorXp, now }: PostCardProps) {
   const comments = commentsToArray(post.comments);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -69,13 +71,13 @@ export default function PostCard({ post, session, now }: PostCardProps) {
     <article className="animate-fade-in-up overflow-hidden rounded-xl border border-ink-200 bg-surface shadow-sm">
       {/* ヘッダー */}
       <header className="flex items-start gap-3 px-4 pt-4">
-        <Avatar name={post.name} role={post.role} avatarUrl={post.avatarUrl} />
+        <Avatar name={post.name} avatarUrl={post.avatarUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="truncate font-semibold text-ink-900">
               {post.name}
             </span>
-            <RoleBadge role={post.role} />
+            <LevelBadge xp={authorXp} />
           </div>
           <time className="text-xs text-ink-400">
             {formatRelativeTime(post.createdAt, now)}

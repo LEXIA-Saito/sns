@@ -1,24 +1,36 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, ImagePlus, Film, Loader2 } from "lucide-react";
 import { createPost } from "@/lib/posts";
 import type { Session } from "@/lib/session";
+import {
+  XP_MEDIA_POST,
+  XP_TEXT_POST,
+  levelFromXp,
+  tierFromLevel,
+} from "@/lib/level";
 import Avatar from "./Avatar";
+import LevelIcon from "./LevelIcon";
 
 interface PostComposerProps {
   open: boolean;
   onClose: () => void;
   session: Session;
+  /** 自分の経験値（投稿の実績から集計したもの） */
+  xp: number;
   onProfileEdit: () => void;
 }
 
 const MAX_FILE_MB = 50;
+/** 縁のバーの角丸 */
+const FRAME_RADIUS = 16;
 
 export default function PostComposer({
   open,
   onClose,
   session,
+  xp,
   onProfileEdit,
 }: PostComposerProps) {
   const [text, setText] = useState("");
@@ -27,8 +39,39 @@ export default function PostComposer({
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  // 縁のバーを引くために、ポップアップの大きさを測る
+  const [box, setBox] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const element = frameRef.current;
+    if (!open || !element) return;
+
+    const update = () =>
+      setBox({ width: element.offsetWidth, height: element.offsetHeight });
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [open, preview]);
 
   if (!open) return null;
+
+  const gain = file ? XP_MEDIA_POST : XP_TEXT_POST;
+  const current = levelFromXp(xp);
+  // 投稿するとどこまで伸びるかを、薄いバーで先に見せる
+  const after = levelFromXp(xp + gain);
+  const willLevelUp = after.level > current.level;
+  const tier = tierFromLevel(current.level);
+
+  const { width, height } = box;
+  // 枠の内側に収まる太さにする（外側は角丸で切れるため）
+  const inset = 2.5;
+  const straight = 2 * (width - 2 * FRAME_RADIUS) + 2 * (height - 2 * FRAME_RADIUS);
+  const perimeter = Math.max(0, straight + 2 * Math.PI * FRAME_RADIUS);
+  const filled = perimeter * current.progress;
+  const previewFilled = perimeter * (willLevelUp ? 1 : after.progress);
 
   const handleFile = (f: File | null) => {
     if (!f) return;
@@ -69,7 +112,6 @@ export default function PostComposer({
       await createPost({
         accountId: session.accountId,
         name: session.name,
-        role: session.role,
         avatarUrl: session.avatarUrl,
         text,
         file,
@@ -87,7 +129,56 @@ export default function PostComposer({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/40 p-0 sm:items-center sm:p-4">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl">
+      <div
+        ref={frameRef}
+        className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl"
+      >
+        {/* 経験値バー（ポップアップの縁） */}
+        {width > 0 && (
+          <svg
+            className="pointer-events-none absolute inset-0 z-20"
+            width={width}
+            height={height}
+            aria-hidden
+          >
+            <rect
+              x={inset}
+              y={inset}
+              width={Math.max(0, width - inset * 2)}
+              height={Math.max(0, height - inset * 2)}
+              rx={FRAME_RADIUS}
+              fill="none"
+              stroke="rgb(var(--ink-200))"
+              strokeWidth="5"
+            />
+            <rect
+              x={inset}
+              y={inset}
+              width={Math.max(0, width - inset * 2)}
+              height={Math.max(0, height - inset * 2)}
+              rx={FRAME_RADIUS}
+              fill="none"
+              stroke="rgb(var(--accent) / 0.35)"
+              strokeWidth="5"
+              strokeDasharray={`${previewFilled} ${perimeter}`}
+              strokeLinecap="round"
+            />
+            <rect
+              x={inset}
+              y={inset}
+              width={Math.max(0, width - inset * 2)}
+              height={Math.max(0, height - inset * 2)}
+              rx={FRAME_RADIUS}
+              fill="none"
+              stroke="rgb(var(--accent))"
+              strokeWidth="5"
+              strokeDasharray={`${filled} ${perimeter}`}
+              strokeLinecap="round"
+              style={{ transition: "stroke-dasharray 0.4s ease-out" }}
+            />
+          </svg>
+        )}
+
         {/* ヘッダー */}
         <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
           <h2 className="text-base font-semibold text-ink-900">投稿する</h2>
@@ -101,23 +192,22 @@ export default function PostComposer({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          {/* プロフィール (編集ボタンつき) */}
+          {/* プロフィールと現在のレベル */}
           <div className="flex items-center justify-between rounded-lg border border-ink-200 bg-ink-50 p-3">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10">
-                <Avatar
-                  name={session.name || "?"}
-                  role={session.role}
-                  avatarUrl={session.avatarUrl}
-                  size="md"
-                />
+                <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="md" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-ink-900">
                   {session.name || "名前未設定"}
                 </p>
-                <p className="text-xs text-ink-500">
-                  {session.role === "academy" ? "アカデミー" : "LOMメンバー"}
+                <p className="flex items-center gap-1 text-xs text-ink-500">
+                  <LevelIcon rank={tier.rank} size={12} />
+                  レベル {current.level}
+                  <span className="text-ink-400">
+                    ・次まで あと {current.remaining}
+                  </span>
                 </p>
               </div>
             </div>
@@ -164,18 +254,16 @@ export default function PostComposer({
 
           {/* メディア追加ボタン */}
           {!file && (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-dashed border-ink-300 px-3 py-3 text-sm text-ink-500 transition hover:border-accent hover:text-ink-800"
-              >
-                <ImagePlus size={18} />
-                画像
-                <Film size={18} className="ml-1" />
-                動画を追加
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-ink-300 px-3 py-3 text-sm text-ink-500 transition hover:border-accent hover:text-ink-800"
+            >
+              <ImagePlus size={18} />
+              画像
+              <Film size={18} className="ml-1" />
+              動画を追加
+            </button>
           )}
           <input
             ref={fileInputRef}
@@ -184,6 +272,17 @@ export default function PostComposer({
             className="hidden"
             onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
           />
+
+          {/* 経験値の案内 */}
+          <p className="text-center text-xs text-ink-500">
+            この投稿で <span className="font-semibold text-ink-900">+{gain}</span>
+            {file ? "（画像・動画つき）" : `　画像・動画をつけると +${XP_MEDIA_POST}`}
+            {willLevelUp && (
+              <span className="ml-1 font-semibold text-ink-900">
+                ・レベル{after.level}に上がります
+              </span>
+            )}
+          </p>
 
           {/* アップロード進捗 */}
           {submitting && file && (

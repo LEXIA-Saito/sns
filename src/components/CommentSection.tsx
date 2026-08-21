@@ -51,7 +51,7 @@ export default function CommentSection({
         <ul className="mb-3 space-y-2">
           {comments.map((c) => (
             <li key={c.id} className="flex gap-2 text-sm">
-              <Avatar name={c.name} role="academy" avatarUrl={c.avatarUrl} size="sm" />
+              <Avatar name={c.name} avatarUrl={c.avatarUrl} size="sm" />
               <div className="flex-1">
                 <span className="font-semibold text-ink-800">{c.name}</span>
                 <span className="ml-2 whitespace-pre-wrap break-words text-ink-700">
@@ -68,12 +68,7 @@ export default function CommentSection({
 
       <div className="flex items-end gap-2">
         <div className="flex flex-1 items-end gap-2">
-          <Avatar
-            name={session.name || "?"}
-            role={session.role}
-            avatarUrl={session.avatarUrl}
-            size="sm"
-          />
+          <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="sm" />
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

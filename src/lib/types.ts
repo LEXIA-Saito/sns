@@ -1,6 +1,3 @@
-// 投稿者の種別
-export type AuthorRole = "academy" | "lom";
-
 // メディアの種別
 export type MediaType = "image" | "video";
 
@@ -26,7 +23,6 @@ export interface Post {
   /** 投稿者のログインID（アカウントカード）。本人だけが編集・削除できる */
   accountId?: string;
   name: string;
-  role: AuthorRole;
   avatarUrl?: string;
   text: string;
   media?: Media | null;
@@ -34,8 +30,3 @@ export interface Post {
   updatedAt?: number;
   comments?: Record<string, Comment>;
 }
-
-export const ROLE_LABEL: Record<AuthorRole, string> = {
-  academy: "アカデミーメンバー",
-  lom: "LOMメンバー",
-};

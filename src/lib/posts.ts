@@ -17,7 +17,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
-import type { AuthorRole, Media, Post, Comment } from "./types";
+import type { Media, Post, Comment } from "./types";
 
 const POSTS_PATH = "posts";
 
@@ -55,7 +55,6 @@ export function subscribePosts(
 export interface CreatePostInput {
   accountId: string;
   name: string;
-  role: AuthorRole;
   avatarUrl?: string;
   text: string;
   file?: File | null;
@@ -155,7 +154,6 @@ export async function createPost(input: CreatePostInput): Promise<void> {
   await set(newRef, {
     accountId: input.accountId,
     name: input.name.trim(),
-    role: input.role,
     ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
     text: input.text.trim(),
     media,

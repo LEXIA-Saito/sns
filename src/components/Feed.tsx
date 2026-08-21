@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PenSquare,
   MessageSquareText,
@@ -10,7 +10,7 @@ import {
   QrCode,
   X,
 } from "lucide-react";
-import type { Post, AuthorRole } from "@/lib/types";
+import type { Post } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { useNow } from "@/lib/useNow";
 import {
@@ -20,7 +20,8 @@ import {
   type Session,
 } from "@/lib/session";
 import { onAuthStateChanged, signOutCard } from "@/lib/auth";
-import { DEMO_SESSION, buildDemoPosts } from "@/lib/demo";
+import { DEMO_BASE_XP, DEMO_SESSION, buildDemoPosts } from "@/lib/demo";
+import { xpByAccount } from "@/lib/level";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import LoginGate from "./LoginGate";
@@ -90,15 +91,23 @@ export default function Feed() {
     }
   };
 
-  const handleProfileSave = (
-    name: string,
-    role: AuthorRole,
-    avatarUrl?: string
-  ) => {
+  const handleProfileSave = (name: string, avatarUrl?: string) => {
     if (!session) return;
-    saveProfile(session.accountId, { name, role, avatarUrl });
-    setSession({ ...session, name, role, avatarUrl });
+    saveProfile(session.accountId, { name, avatarUrl });
+    setSession({ ...session, name, avatarUrl });
   };
+
+  // 投稿の実績から、カード番号ごとの経験値を出す
+  const xpMap = useMemo(() => {
+    const fromPosts = xpByAccount(posts);
+    if (!demo) return fromPosts;
+    // デモではレベルの段階が一通り見えるよう、過去ぶんを足して表示する
+    const merged = { ...fromPosts };
+    for (const [accountId, base] of Object.entries(DEMO_BASE_XP)) {
+      merged[accountId] = (merged[accountId] ?? 0) + base;
+    }
+    return merged;
+  }, [posts, demo]);
 
   // リアルタイム購読
   useEffect(() => {
@@ -172,12 +181,7 @@ export default function Feed() {
               className="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden border border-ink-200 transition hover:border-ink-400"
               aria-label="プロフィール設定"
             >
-              <Avatar
-                name={session.name || "?"}
-                role={session.role}
-                avatarUrl={session.avatarUrl}
-                size="sm"
-              />
+              <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="sm" />
             </button>
             <Link
               href="/status"
@@ -239,6 +243,7 @@ export default function Feed() {
                 key={post.id}
                 post={post}
                 session={session}
+                authorXp={post.accountId ? xpMap[post.accountId] ?? 0 : 0}
                 now={now}
               />
             ))}
@@ -299,6 +304,7 @@ export default function Feed() {
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
         session={session}
+        xp={xpMap[session.accountId] ?? 0}
         onProfileEdit={() => {
           setComposerOpen(false);
           setProfileOpen(true);
@@ -312,7 +318,6 @@ export default function Feed() {
         accountId={session.accountId}
         onClose={() => setProfileOpen(false)}
         defaultName={session.name}
-        defaultRole={session.role}
         defaultAvatarUrl={session.avatarUrl}
         onSave={handleProfileSave}
         onLogout={() => void handleLogout()}
