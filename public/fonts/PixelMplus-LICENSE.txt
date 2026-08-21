@@ -1,0 +1,22 @@
+PixelMplus12 (ピクセル・エムプラス12)
+Copyright (C) 2002-2013 M+ FONTS PROJECT
+出典: https://github.com/itouhiro/PixelMplus
+
+以下は同梱の M+ FONT LICENSE 原文。
+
+M+ FONTS                                Copyright (C) 2002-2013 M+ FONTS PROJECT
+
+-
+
+LICENSE_E
+
+
+
+
+These fonts are free software.
+Unlimited permission is granted to use, copy, and distribute them, with
+or without modification, either commercially or noncommercially.
+THESE FONTS ARE PROVIDED "AS IS" WITHOUT WARRANTY.
+
+
+http://mplus-fonts.sourceforge.jp/mplus-outline-fonts/
