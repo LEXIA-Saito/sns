@@ -230,7 +230,8 @@ export const THEMES: ThemeOption[] = [
       "--gate-glow": "255 255 255",
       "--theme-color": "#0a0a0a",
       "--logo-filter": "brightness(0) invert(1)",
-      "--font-theme": "\"DotGothic16\", \"Hiragino Sans\", \"Noto Sans JP\", sans-serif",
+      "--font-theme": "\"k8x12\", \"Hiragino Sans\", \"Noto Sans JP\", sans-serif",
+      "--font-smoothing": "none",
     },
   },
 ];

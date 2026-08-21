@@ -1,5 +1,18 @@
 @import "./theme.css";
 
+/*
+ * 8×12ドットの日本語ビットマップ書体「k8x12」
+ * Copyright (C) 2015-2021 Num Kadoma / https://littlelimit.net/k8x12.htm
+ * 自由に使用・改変・再配布できるフリーソフトウェア（詳細は public/fonts/k8x12-LICENSE.txt）
+ */
+@font-face {
+  font-family: "k8x12";
+  src: url("/fonts/k8x12.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -22,7 +35,8 @@ body {
 body {
   /* 配色案が --font-theme を指定していればそれを使う（ドット書体など） */
   font-family: var(--font-theme, var(--font-sans));
-  -webkit-font-smoothing: antialiased;
+  /* ドット書体は縁をぼかさない方がドットらしく見えるので、案ごとに切り替える */
+  -webkit-font-smoothing: var(--font-smoothing, antialiased);
   text-rendering: optimizeLegibility;
 }
 
