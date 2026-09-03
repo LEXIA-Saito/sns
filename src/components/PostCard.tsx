@@ -332,7 +332,7 @@ export default function PostCard({
                   </p>
                 )}
                 <p className="mt-2 text-xs text-ink-400">
-                  氏名はカード固定です。アイコン画像のみプロフィール設定から変更できます。
+                  アイコン画像はプロフィール設定から変更できます。
                 </p>
               </div>
             </div>

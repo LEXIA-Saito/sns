@@ -114,6 +114,7 @@ export default function ProfileSetup({
               </div>
             </div>
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
               className="mt-3 text-sm font-medium text-ink-600 hover:text-ink-900 transition"
@@ -127,22 +128,10 @@ export default function ProfileSetup({
               className="hidden"
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
             />
-          </div>
 
-          {/* 名前（読み取り専用表示） */}
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">
-              お名前
-            </label>
-            <div className="flex items-center justify-between rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5">
-              <span className="text-sm font-semibold text-ink-900">{defaultName || "名前未設定"}</span>
-              <span className="rounded bg-ink-200 px-1.5 py-0.5 text-[10px] font-medium text-ink-600">固定</span>
-            </div>
-            <p className="mt-1.5 text-[11px] text-ink-400">
-              ※ お名前はアカウントカードの名簿に基づき固定されています。
-            </p>
+            {/* お名前（入力枠や固定バッジを排したシンプルなテキスト表示） */}
+            <p className="mt-4 text-base font-bold text-ink-900">{defaultName}</p>
           </div>
-
         </div>
 
         <div className="border-t border-ink-100 px-5 py-4">
