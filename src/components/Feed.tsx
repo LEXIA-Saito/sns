@@ -370,7 +370,6 @@ export default function Feed() {
         open={composerOpen}
         onClose={() => setComposerOpen(false)}
         session={session}
-        xp={xpMap[session.accountId] ?? 0}
         onProfileEdit={() => {
           setComposerOpen(false);
           setProfileOpen(true);

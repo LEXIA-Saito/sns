@@ -16,11 +16,9 @@ import {
 } from "lucide-react";
 import AdminOnly from "@/components/AdminOnly";
 import Avatar from "@/components/Avatar";
-import LevelBadge from "@/components/LevelBadge";
 import type { Post, Comment } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { filterVisiblePosts, filterVisibleComments } from "@/lib/moderation";
-import { xpByAccount } from "@/lib/level";
 
 export default function ProjectorPage() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -45,11 +43,6 @@ export default function ProjectorPage() {
   // 公開投稿のみ
   const visiblePosts = useMemo(() => {
     return filterVisiblePosts(posts);
-  }, [posts]);
-
-  // アカウント経験値マップ
-  const xpMap = useMemo(() => {
-    return xpByAccount(posts);
   }, [posts]);
 
   const currentPost: Post | undefined = visiblePosts[currentIndex];
@@ -188,7 +181,6 @@ export default function ProjectorPage() {
                       <span className="text-2xl md:text-4xl font-extrabold tracking-wide">
                         {currentPost.name}
                       </span>
-                      <LevelBadge xp={currentPost.accountId ? xpMap[currentPost.accountId] ?? 0 : 0} />
                     </div>
                     <p className="mt-1 text-sm md:text-base text-white/50 font-mono">
                       {currentPost.accountId}
