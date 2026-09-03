@@ -32,18 +32,21 @@ export function loadProfile(accountId: string): Profile {
   const fixedName = getRosterName(accountId);
   if (typeof window === "undefined") return { name: fixedName };
   let avatarUrl: string | undefined;
+  let saved = false;
   try {
     const raw = localStorage.getItem(keyFor(accountId));
     if (raw) {
+      saved = true;
       const parsed = JSON.parse(raw) as Partial<Profile>;
       avatarUrl = parsed.avatarUrl;
     }
   } catch {
     // 壊れていたら初期値に戻す
   }
-  if (!avatarUrl) {
-    const legacy = readLegacyProfile();
-    avatarUrl = legacy.avatarUrl;
+  // 旧運用の値は初回だけ拾う。
+  // 保存済みならデフォルトへ戻した結果なので、拾い直さない
+  if (!saved) {
+    avatarUrl = readLegacyProfile().avatarUrl;
   }
   return {
     name: fixedName,

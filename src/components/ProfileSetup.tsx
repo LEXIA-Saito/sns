@@ -59,6 +59,14 @@ export default function ProfileSetup({
     }
   };
 
+  const handleReset = () => {
+    if (!confirm("プロフィール画像を、名前のみの初期表示に戻します。よろしいですか？")) {
+      return;
+    }
+    setAvatarUrl(undefined);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSave = () => {
     onSave(defaultName, avatarUrl);
     onClose();
@@ -129,6 +137,16 @@ export default function ProfileSetup({
               className="hidden"
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
             />
+            {avatarUrl && (
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={isUploading}
+                className="mt-1.5 text-xs font-medium text-ink-400 transition hover:text-ink-700 disabled:opacity-50"
+              >
+                デフォルトに戻す
+              </button>
+            )}
 
             {/* お名前（入力枠や固定バッジを排したシンプルなテキスト表示） */}
             <p className="mt-4 text-base font-bold text-ink-900">{defaultName}</p>

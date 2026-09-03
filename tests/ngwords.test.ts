@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkText, normalizeForCheck } from "../src/lib/ngwords.ts";
+import { checkText, normalizeForCheck } from "../src/lib/ngwords";
 
 test("普通の投稿は通る", () => {
   const samples = [
