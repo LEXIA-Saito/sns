@@ -44,15 +44,6 @@ export function buildDemoPosts(now: number): Post[] {
       text: "10月例会の練習、今日で3回目。当日は全員でやりきります！",
       media: image(),
       createdAt: now - 4 * MINUTE,
-      comments: {
-        c1: {
-          id: "c1",
-          accountId: "26-031",
-          name: "坂 直樹",
-          text: "楽しみにしてます！",
-          createdAt: now - 2 * MINUTE,
-        },
-      },
     },
     {
       id: "demo-2",
@@ -68,15 +59,6 @@ export function buildDemoPosts(now: number): Post[] {
       text: "PR動画の撮影、東幡豆の海岸で撮ってきました。夕方の光がいい感じ。",
       media: image(),
       createdAt: now - 3 * 60 * MINUTE,
-      comments: {
-        c2: {
-          id: "c2",
-          accountId: "26-009",
-          name: "杉浦 誠",
-          text: "これはいい絵が撮れそう",
-          createdAt: now - 2 * 60 * MINUTE,
-        },
-      },
     },
     {
       id: "demo-4",

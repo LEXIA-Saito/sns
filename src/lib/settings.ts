@@ -10,11 +10,8 @@ export const DEFAULT_POST_GUIDE_NOTICE = "写真付き投稿は10月12日まで"
 
 // 2026-10-12 23:59:00 JST -> Unixミリ秒
 export const DEFAULT_POST_DEADLINE_MS = new Date("2026-10-12T23:59:00+09:00").getTime();
-// 2026-10-19 19:00:00 JST -> Unixミリ秒
-export const DEFAULT_COMMENT_DEADLINE_MS = new Date("2026-10-19T19:00:00+09:00").getTime();
 
 export const DEFAULT_POST_DEADLINE_ISO = "2026-10-12T23:59";
-export const DEFAULT_COMMENT_DEADLINE_ISO = "2026-10-19T19:00";
 
 export interface CheckActionStatusResult {
   allowed: boolean;
@@ -101,38 +98,6 @@ export function canCreatePost(
       allowed: false,
       isDeadlinePassed: true,
       reason: `投稿受付は終了しました（締切: ${formatJstDateTime(settings.postDeadline)}）。`,
-    };
-  }
-
-  return { allowed: true };
-}
-
-/**
- * 新規コメントが可能か判定。
- */
-export function canCreateComment(
-  settings: AppSettings | null | undefined,
-  now: number,
-  isAdmin: boolean = false
-): CheckActionStatusResult {
-  if (isAdmin) {
-    return { allowed: true };
-  }
-
-  // 1. スイッチ判定（未設定時はデフォルト true）
-  if (settings && settings.commentAccepting === false) {
-    return {
-      allowed: false,
-      reason: "現在、コメントの受付を一時停止しています。",
-    };
-  }
-
-  // 2. 締切判定
-  if (settings?.commentDeadline && now >= settings.commentDeadline) {
-    return {
-      allowed: false,
-      isDeadlinePassed: true,
-      reason: `コメント受付は終了しました（締切: ${formatJstDateTime(settings.commentDeadline)}）。`,
     };
   }
 

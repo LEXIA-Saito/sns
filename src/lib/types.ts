@@ -16,17 +16,6 @@ export interface ModerationInfo {
   moderatedBy?: string; // "26-000"
 }
 
-export interface Comment {
-  id: string;
-  /** 投稿者のログインID（アカウントカード） */
-  accountId?: string;
-  name: string;
-  avatarUrl?: string;
-  text: string;
-  createdAt: number;
-  moderation?: ModerationInfo;
-}
-
 export interface Post {
   id: string;
   /** 投稿者のログインID（アカウントカード）。本人だけが編集・削除できる */
@@ -37,7 +26,6 @@ export interface Post {
   media?: Media | null;
   createdAt: number;
   updatedAt?: number;
-  comments?: Record<string, Comment>;
   moderation?: ModerationInfo;
 }
 
@@ -45,12 +33,8 @@ export interface Post {
 export interface AppSettings {
   /** 投稿受付 (未作成またはtrueなら受付中) */
   postAccepting?: boolean;
-  /** コメント受付 (未作成またはtrueなら受付中) */
-  commentAccepting?: boolean;
   /** 投稿締切日時 (Unixミリ秒) */
   postDeadline?: number | null;
-  /** コメント締切日時 (Unixミリ秒) */
-  commentDeadline?: number | null;
   /** ガイド文の締切表示文 (例: 写真付き投稿は10月12日まで) */
   postGuideNotice?: string;
   /** ガイド文の箇条書き */
@@ -65,5 +49,3 @@ export interface AccountActivity {
   firstLoginAt?: number;
 }
 
-/** いいねデータ構造: likes[postId][accountId] = true */
-export type LikesByPost = Record<string, Record<string, boolean>>;

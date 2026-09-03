@@ -28,15 +28,6 @@
         ".validate": "newData.isNumber()"
       }
     },
-    "likes": {
-      ".read": "auth != null",
-      "$postId": {
-        "$accountId": {
-          ".write": "auth != null && auth.uid === $accountId && (root.child('posts').child($postId).child('moderation/hidden').val() !== true || auth.uid === '26-000')",
-          ".validate": "newData.val() === true"
-        }
-      }
-    },
     "posts": {
       ".read": "auth != null",
       ".indexOn": [
@@ -97,50 +88,6 @@
           },
           "$other": {
             ".validate": false
-          }
-        },
-        "comments": {
-          "$commentId": {
-            ".write": "auth != null && (!data.exists() ? (auth.uid === '26-000' || (newData.child('accountId').val() === auth.uid && root.child('settings/commentAccepting').val() !== false && (!root.child('settings/commentDeadline').exists() || now < root.child('settings/commentDeadline').val()))) : (!newData.exists() && (data.child('accountId').val() === auth.uid || auth.uid === '26-000')))",
-            ".validate": "newData.hasChildren(['accountId', 'name', 'text', 'createdAt'])",
-            "accountId": {
-              ".validate": "newData.val() === auth.uid || auth.uid === '26-000'"
-            },
-            "name": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
-            },
-            "text": {
-              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
-            },
-            "avatarUrl": {
-              ".write": "auth != null && auth.uid === '26-000'",
-              ".validate": "newData.isString()"
-            },
-            "createdAt": {
-              ".validate": "newData.isNumber()"
-            },
-            "moderation": {
-              ".write": "auth != null && auth.uid === '26-000'",
-              ".validate": "auth.uid === '26-000' || (data.exists() && data.val() === newData.val())",
-              "hidden": {
-                ".validate": "newData.isBoolean()"
-              },
-              "reason": {
-                ".validate": "newData.isString()"
-              },
-              "moderatedAt": {
-                ".validate": "newData.isNumber()"
-              },
-              "moderatedBy": {
-                ".validate": "newData.val() === '26-000'"
-              },
-              "$other": {
-                ".validate": false
-              }
-            },
-            "$other": {
-              ".validate": false
-            }
           }
         },
         "$other": {

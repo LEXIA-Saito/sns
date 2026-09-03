@@ -28,16 +28,14 @@ import {
 } from "lucide-react";
 import AdminOnly from "@/components/AdminOnly";
 import Avatar from "@/components/Avatar";
-import type { Post, Comment, AppSettings, AccountActivity } from "@/lib/types";
+import type { Post, AppSettings, AccountActivity } from "@/lib/types";
 import {
   subscribePosts,
   subscribeSettings,
   subscribeAllActivities,
   updateSettings,
   setPostModeration,
-  setCommentModeration,
   deletePost,
-  deleteComment,
   resetAccountAvatar,
 } from "@/lib/posts";
 import {
@@ -47,7 +45,6 @@ import {
   DEFAULT_POST_GUIDE_LINES,
   DEFAULT_POST_GUIDE_NOTICE,
   DEFAULT_POST_DEADLINE_ISO,
-  DEFAULT_COMMENT_DEADLINE_ISO,
 } from "@/lib/settings";
 import { buildAccountProgressList, generateProgressCsv, type AccountProgressItem } from "@/lib/progress";
 import { formatPhotoFileName, createZipArchive, type ZipFileEntry } from "@/lib/zip";
@@ -68,24 +65,21 @@ export default function AdminDashboardPage() {
 
   // 設定フォーム状態
   const [postAccepting, setPostAccepting] = useState(true);
-  const [commentAccepting, setCommentAccepting] = useState(true);
   const [postDeadlineInput, setPostDeadlineInput] = useState("");
-  const [commentDeadlineInput, setCommentDeadlineInput] = useState("");
   const [guideNotice, setGuideNotice] = useState(DEFAULT_POST_GUIDE_NOTICE);
   const [guideLinesText, setGuideLinesText] = useState(DEFAULT_POST_GUIDE_LINES.join("\n"));
 
   // 投稿モデレーション状態
   const [postFilter, setPostFilter] = useState<"all" | "hidden">("all");
   const [postSearch, setPostSearch] = useState("");
-  const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | null>(null);
 
   // アイコン初期化の実行中カード
   const [resettingAvatarId, setResettingAvatarId] = useState<string | null>(null);
 
   // アカウント進捗フィルタ状態
-  const [progressFilter, setProgressFilter] = useState<"all" | "not_logged_in" | "not_posted" | "not_image" | "not_commented">("all");
+  const [progressFilter, setProgressFilter] = useState<"all" | "not_logged_in" | "not_posted" | "not_image">("all");
   const [progressSearch, setProgressSearch] = useState("");
-  const [progressSort, setProgressSort] = useState<"id" | "posts" | "comments" | "login">("id");
+  const [progressSort, setProgressSort] = useState<"id" | "posts" | "login">("id");
 
   // 写真ダウンロード状態
   const [downloadingZip, setDownloadingZip] = useState(false);
@@ -109,9 +103,7 @@ export default function AdminDashboardPage() {
         setSettings(st);
         if (st) {
           setPostAccepting(st.postAccepting !== false);
-          setCommentAccepting(st.commentAccepting !== false);
           setPostDeadlineInput(st.postDeadline ? toJstDateTimeLocal(st.postDeadline) : "");
-          setCommentDeadlineInput(st.commentDeadline ? toJstDateTimeLocal(st.commentDeadline) : "");
           setGuideNotice(st.postGuideNotice || DEFAULT_POST_GUIDE_NOTICE);
           if (st.postGuideLines && Array.isArray(st.postGuideLines)) {
             setGuideLinesText(st.postGuideLines.join("\n"));
@@ -146,7 +138,6 @@ export default function AdminDashboardPage() {
     setSavingSettings(true);
     try {
       const postDeadline = parseJstDateTimeLocal(postDeadlineInput);
-      const commentDeadline = parseJstDateTimeLocal(commentDeadlineInput);
       const postGuideLines = guideLinesText
         .split("\n")
         .map((l) => l.trim())
@@ -154,9 +145,7 @@ export default function AdminDashboardPage() {
 
       await updateSettings({
         postAccepting,
-        commentAccepting,
         postDeadline,
-        commentDeadline,
         postGuideNotice: guideNotice.trim() || DEFAULT_POST_GUIDE_NOTICE,
         postGuideLines: postGuideLines.length > 0 ? postGuideLines : DEFAULT_POST_GUIDE_LINES,
         updatedBy: "26-000",
@@ -172,12 +161,11 @@ export default function AdminDashboardPage() {
 
   const handleApplyRecommendedDeadlines = () => {
     setPostDeadlineInput(DEFAULT_POST_DEADLINE_ISO);
-    setCommentDeadlineInput(DEFAULT_COMMENT_DEADLINE_ISO);
-    notify("推奨締切（投稿: 10/12 23:59, コメント: 10/19 19:00）を入力欄にセットしました。「設定を保存」を押して適用してください。");
+    notify("推奨締切（投稿: 10/12 23:59）を入力欄にセットしました。「設定を保存」を押して適用してください。");
   };
 
   // -------------------------------------------------------------
-  // タブ2: 投稿・コメントモデレーション
+  // タブ2: 投稿モデレーション
   // -------------------------------------------------------------
   const filteredPosts = useMemo(() => {
     return posts.filter((p) => {
@@ -225,7 +213,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleDeletePostHard = async (post: Post) => {
-    const ok = confirm(`【二段階確認】この投稿を完全に削除しますか？\n（復元できません。写真・コメントもすべて削除されます）`);
+    const ok = confirm(`【二段階確認】この投稿を完全に削除しますか？\n（復元できません。写真もすべて削除されます）`);
     if (!ok) return;
     try {
       await deletePost(post);
@@ -233,48 +221,6 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error(err);
       notify("削除に失敗しました", "error");
-    }
-  };
-
-  const handleToggleCommentHide = async (postId: string, commentId: string, comment: Comment) => {
-    const isHidden = Boolean(comment.moderation?.hidden);
-    if (isHidden) {
-      if (!confirm("このコメントの非表示を解除し、再公開しますか？")) return;
-      try {
-        await setCommentModeration(postId, commentId, {
-          hidden: false,
-          moderatedBy: "26-000",
-        });
-        notify("コメントを再公開しました");
-      } catch (err) {
-        console.error(err);
-        notify("コメント復元に失敗しました", "error");
-      }
-    } else {
-      const reason = prompt("非表示の理由を入力してください:", "不適切なコメント");
-      if (reason === null) return;
-      try {
-        await setCommentModeration(postId, commentId, {
-          hidden: true,
-          reason: reason.trim() || "運営判断による非表示",
-          moderatedBy: "26-000",
-        });
-        notify("コメントを非表示にしました");
-      } catch (err) {
-        console.error(err);
-        notify("コメント非表示処理に失敗しました", "error");
-      }
-    }
-  };
-
-  const handleDeleteCommentHard = async (postId: string, commentId: string) => {
-    if (!confirm("【確認】このコメントを完全に削除しますか？")) return;
-    try {
-      await deleteComment(postId, commentId);
-      notify("コメントを完全に削除しました");
-    } catch (err) {
-      console.error(err);
-      notify("コメント削除に失敗しました", "error");
     }
   };
 
@@ -290,7 +236,6 @@ export default function AdminDashboardPage() {
       if (progressFilter === "not_logged_in" && item.isLoggedIn) return false;
       if (progressFilter === "not_posted" && item.hasPosted) return false;
       if (progressFilter === "not_image" && item.hasImagePosted) return false;
-      if (progressFilter === "not_commented" && item.hasCommented) return false;
 
       if (progressSearch.trim()) {
         const q = progressSearch.trim().toLowerCase();
@@ -301,8 +246,6 @@ export default function AdminDashboardPage() {
 
     if (progressSort === "posts") {
       list.sort((a, b) => b.postCount - a.postCount);
-    } else if (progressSort === "comments") {
-      list.sort((a, b) => b.commentCount - a.commentCount);
     } else if (progressSort === "login") {
       list.sort((a, b) => (b.lastLoginAt ?? 0) - (a.lastLoginAt ?? 0));
     } else {
@@ -313,11 +256,11 @@ export default function AdminDashboardPage() {
   }, [rawProgressList, progressFilter, progressSearch, progressSort]);
 
   // 不適切なアイコンを、名前のみの初期表示へ戻す。
-  // 過去の投稿・コメントに焼き付いたぶんも外し、本人の端末にも反映される
+  // 過去の投稿に焼き付いたぶんも外し、本人の端末にも反映される
   const handleResetAvatar = async (accountId: string, name: string) => {
     if (
       !confirm(
-        `${name}（${accountId}）のプロフィール画像をデフォルトに戻します。\n過去の投稿・コメントに表示されている画像も外れます。よろしいですか？`
+        `${name}（${accountId}）のプロフィール画像をデフォルトに戻します。\n過去の投稿に表示されている画像も外れます。よろしいですか？`
       )
     ) {
       return;
@@ -325,7 +268,7 @@ export default function AdminDashboardPage() {
     setResettingAvatarId(accountId);
     try {
       const count = await resetAccountAvatar(posts, accountId);
-      notify(`${name} のアイコンをデフォルトに戻しました（投稿・コメント ${count}件）`);
+      notify(`${name} のアイコンをデフォルトに戻しました（投稿 ${count}件）`);
     } catch (err) {
       console.error(err);
       notify("アイコンの初期化に失敗しました", "error");
@@ -507,7 +450,7 @@ export default function AdminDashboardPage() {
               }`}
             >
               <MessageCircle size={14} />
-              <span>投稿・コメント管理 ({posts.length})</span>
+              <span>投稿管理 ({posts.length})</span>
             </button>
             <button
               onClick={() => setActiveTab("progress")}
@@ -557,7 +500,7 @@ export default function AdminDashboardPage() {
                 <div>
                   <h2 className="text-base font-bold text-ink-900">受付スイッチ・締切日時</h2>
                   <p className="mt-1 text-xs text-ink-500">
-                    一般メンバーの投稿・コメント受付を即時ON/OFF、または日時で自動停止します。
+                    一般メンバーの投稿受付を即時ON/OFF、または日時で自動停止します。
                     <span className="text-accent font-semibold ml-1">※ 運営アカウント（26-000）は停止中も常に投稿可能です。</span>
                   </p>
                 </div>
@@ -606,48 +549,6 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* コメント受付 */}
-                  <div className="rounded-lg border border-ink-200 p-4 space-y-3 bg-ink-50/50">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-ink-900">コメントの受付</span>
-                      <button
-                        type="button"
-                        onClick={() => setCommentAccepting(!commentAccepting)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          commentAccepting ? "bg-accent" : "bg-ink-300"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            commentAccepting ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    <p className="text-xs text-ink-500">
-                      状態: {commentAccepting ? "🟢 受付中" : "🔴 一時停止中"}
-                    </p>
-                    <div>
-                      <label className="block text-xs font-semibold text-ink-700 mb-1">
-                        コメント締切日時（日本時間）
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={commentDeadlineInput}
-                        onChange={(e) => setCommentDeadlineInput(e.target.value)}
-                        className="w-full rounded-md border border-ink-300 bg-surface px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent"
-                      />
-                      {commentDeadlineInput && (
-                        <button
-                          type="button"
-                          onClick={() => setCommentDeadlineInput("")}
-                          className="mt-1 text-[11px] text-ink-400 hover:text-red-500"
-                        >
-                          締切を解除（無期限にする）
-                        </button>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="flex items-center justify-end">
@@ -656,7 +557,7 @@ export default function AdminDashboardPage() {
                     onClick={handleApplyRecommendedDeadlines}
                     className="text-xs font-semibold text-accent hover:underline"
                   >
-                    10月度例会の初期目安（投稿: 10/12 23:59、コメント: 10/19 19:00）を自動入力
+                    10月度例会の初期目安（投稿: 10/12 23:59）を自動入力
                   </button>
                 </div>
               </div>
@@ -711,7 +612,7 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ========================================================= */}
-          {/* タブ 2: 投稿・コメント管理（モデレーション） */}
+          {/* タブ 2: 投稿管理（モデレーション） */}
           {/* ========================================================= */}
           {activeTab === "posts" && (
             <div className="space-y-4">
@@ -755,7 +656,6 @@ export default function AdminDashboardPage() {
                 <div className="space-y-3">
                   {filteredPosts.map((post) => {
                     const isHidden = Boolean(post.moderation?.hidden);
-                    const comments = Object.entries(post.comments || {}).map(([id, c]) => ({ ...c, id }));
 
                     return (
                       <div
@@ -831,67 +731,6 @@ export default function AdminDashboardPage() {
                           </div>
                         )}
 
-                        {/* コメント管理アコーディオン */}
-                        <div className="mt-3 pt-3 border-t border-ink-100 flex items-center justify-between text-xs">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedCommentsPostId(expandedCommentsPostId === post.id ? null : post.id)
-                            }
-                            className="font-semibold text-ink-600 hover:text-ink-900"
-                          >
-                            コメント管理 ({comments.length} 件)
-                          </button>
-                        </div>
-
-                        {expandedCommentsPostId === post.id && (
-                          <div className="mt-3 rounded-lg bg-ink-50 p-3 space-y-2">
-                            {comments.length === 0 ? (
-                              <p className="text-xs text-ink-400">コメントはありません</p>
-                            ) : (
-                              comments.map((c) => {
-                                const cHidden = Boolean(c.moderation?.hidden);
-                                return (
-                                  <div
-                                    key={c.id}
-                                    className={`flex items-start justify-between gap-2 rounded border p-2 text-xs ${
-                                      cHidden ? "border-amber-500/30 bg-amber-500/5" : "border-ink-200 bg-surface"
-                                    }`}
-                                  >
-                                    <div className="min-w-0 flex-1">
-                                      <div className="flex items-center gap-1.5 font-bold text-ink-900">
-                                        <span>{c.name}</span>
-                                        <span className="text-[11px] text-ink-400 font-normal">
-                                          ({c.accountId || "IDなし"})
-                                        </span>
-                                        {cHidden && (
-                                          <span className="text-[10px] text-amber-400">【非表示中】</span>
-                                        )}
-                                      </div>
-                                      <p className="mt-0.5 text-ink-700 whitespace-pre-wrap">{c.text}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleCommentHide(post.id, c.id, c)}
-                                        className="rounded px-2 py-1 text-[11px] font-semibold border border-ink-300 text-ink-700 hover:bg-ink-100"
-                                      >
-                                        {cHidden ? "復元" : "非表示"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteCommentHard(post.id, c.id)}
-                                        className="rounded p-1 text-red-400 hover:bg-red-500/10"
-                                      >
-                                        <Trash2 size={12} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -923,12 +762,6 @@ export default function AdminDashboardPage() {
                   <p className="text-xs text-ink-500">写真投稿済</p>
                   <p className="text-xl font-bold text-accent mt-1">
                     {rawProgressList.filter((x) => x.hasImagePosted).length} / {rawProgressList.length}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-ink-200 bg-surface p-4 text-center">
-                  <p className="text-xs text-ink-500">コメント済</p>
-                  <p className="text-xl font-bold text-ink-900 mt-1">
-                    {rawProgressList.filter((x) => x.hasCommented).length} / {rawProgressList.length}
                   </p>
                 </div>
               </div>
@@ -985,7 +818,6 @@ export default function AdminDashboardPage() {
                   >
                     <option value="id">ID順</option>
                     <option value="posts">投稿数順</option>
-                    <option value="comments">コメント数順</option>
                     <option value="login">ログイン順</option>
                   </select>
                   <button
@@ -1009,7 +841,6 @@ export default function AdminDashboardPage() {
                       <th className="px-3 py-2.5">ログイン</th>
                       <th className="px-3 py-2.5 text-center">投稿数</th>
                       <th className="px-3 py-2.5 text-center">写真投稿</th>
-                      <th className="px-3 py-2.5 text-center">コメント数</th>
                       <th className="px-3 py-2.5">最終ログイン</th>
                       <th className="px-3 py-2.5 text-center">アイコン</th>
                     </tr>
@@ -1046,9 +877,6 @@ export default function AdminDashboardPage() {
                           ) : (
                             <span className="text-ink-300">-</span>
                           )}
-                        </td>
-                        <td className="px-3 py-2 text-center font-semibold">
-                          {item.commentCount > 0 ? item.commentCount : <span className="text-ink-300">0</span>}
                         </td>
                         <td className="px-3 py-2 text-[11px] text-ink-500">
                           {item.lastLoginAt ? formatJstDateTime(item.lastLoginAt) : "未記録"}

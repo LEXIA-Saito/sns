@@ -7,7 +7,6 @@ import {
   Clock3,
   Database,
   HardDrive,
-  Radio,
   Server,
   ShieldCheck,
   XCircle,
@@ -152,17 +151,12 @@ function StatusIcon({ level }: { level: StatusLevel }) {
 
 export default async function StatusPage() {
   const probe = await probeDatabase();
-  const commentCount = probe.posts.reduce(
-    (total, post) => total + Object.keys(post.comments ?? {}).length,
-    0
-  );
   const mediaCount = probe.posts.filter((post) => post.media).length;
   const latestPost = probe.posts[0];
   const configuredCount = requiredEnv.filter((key) => Boolean(process.env[key])).length;
 
   const cards = [
     { label: "投稿数", value: probe.posts.length, icon: Database, helper: "postsノード" },
-    { label: "コメント数", value: commentCount, icon: Radio, helper: "全投稿合計" },
     { label: "メディア付き", value: mediaCount, icon: HardDrive, helper: "画像・動画" },
     { label: "応答時間", value: probe.latencyMs === null ? "--" : `${probe.latencyMs}ms`, icon: Activity, helper: "SSR fetch" },
   ];

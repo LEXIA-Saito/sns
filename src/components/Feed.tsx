@@ -12,11 +12,10 @@ import {
   PixelShield,
   PixelTv,
 } from "./PixelIcon";
-import type { Post, AppSettings, LikesByPost } from "@/lib/types";
+import type { Post, AppSettings } from "@/lib/types";
 import {
   subscribePosts,
   subscribeSettings,
-  subscribeLikes,
   recordAccountLogin,
   subscribeAvatarReset,
 } from "@/lib/posts";
@@ -43,7 +42,6 @@ import Avatar from "./Avatar";
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [likes, setLikes] = useState<LikesByPost>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -148,7 +146,7 @@ export default function Feed() {
     return merged;
   }, [posts, demo]);
 
-  // リアルタイム購読（posts, settings, likes）
+  // リアルタイム購読（posts, settings）
   useEffect(() => {
     if (demo) return;
     if (!firebaseConfigured || !session) {
@@ -157,7 +155,6 @@ export default function Feed() {
     }
     let unsubPosts: (() => void) | undefined;
     let unsubSettings: (() => void) | undefined;
-    let unsubLikes: (() => void) | undefined;
 
     try {
       unsubPosts = subscribePosts(
@@ -180,10 +177,6 @@ export default function Feed() {
       unsubSettings = subscribeSettings((st) => {
         setSettings(st);
       });
-
-      unsubLikes = subscribeLikes((lk) => {
-        setLikes(lk);
-      });
     } catch (e) {
       console.error(e);
       setError("接続に失敗しました。設定をご確認ください。");
@@ -192,7 +185,6 @@ export default function Feed() {
     return () => {
       unsubPosts?.();
       unsubSettings?.();
-      unsubLikes?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseConfigured, demo, session?.accountId]);
@@ -332,8 +324,6 @@ export default function Feed() {
                 session={session}
                 authorXp={post.accountId ? xpMap[post.accountId] ?? 0 : 0}
                 now={now}
-                likes={likes[post.id]}
-                settings={settings}
               />
             ))}
           </div>

@@ -3,11 +3,11 @@ import type { Post } from "./types";
 /**
  * 運営がアイコンをデフォルトへ戻すときの処理。
  *
- * 投稿・コメントには投稿時点のアイコンが焼き付いているので、
+ * 投稿には投稿時点のアイコンが焼き付いているので、
  * 過去ぶんもまとめて外さないと会場のスクリーンに残ってしまう。
  */
 
-/** 過去の投稿・コメントからアイコンを外すための更新パスを組み立てる */
+/** 過去の投稿からアイコンを外すための更新パスを組み立てる */
 export function buildAvatarResetUpdates(
   posts: Post[],
   accountId: string
@@ -16,11 +16,6 @@ export function buildAvatarResetUpdates(
   for (const post of posts) {
     if (post.accountId === accountId && post.avatarUrl) {
       updates[`posts/${post.id}/avatarUrl`] = null;
-    }
-    for (const [commentId, comment] of Object.entries(post.comments ?? {})) {
-      if (comment.accountId === accountId && comment.avatarUrl) {
-        updates[`posts/${post.id}/comments/${commentId}/avatarUrl`] = null;
-      }
     }
   }
   return updates;

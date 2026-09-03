@@ -3,22 +3,18 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
-  PixelHeart,
-  PixelComment,
   PixelTrash,
   PixelEdit,
   PixelEye,
   PixelEyeOff,
   PixelX,
 } from "./PixelIcon";
-import type { Post, AppSettings } from "@/lib/types";
+import type { Post } from "@/lib/types";
 import type { Session } from "@/lib/session";
-import { commentsToArray, deletePost, updatePost, toggleLike, setPostModeration } from "@/lib/posts";
-import { countLikes, hasUserLiked } from "@/lib/likes";
+import { deletePost, updatePost, setPostModeration } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
 import LevelBadge from "./LevelBadge";
-import CommentSection from "./CommentSection";
 
 interface PostCardProps {
   post: Post;
@@ -26,8 +22,6 @@ interface PostCardProps {
   /** 投稿者の経験値（投稿の実績から集計したもの） */
   authorXp: number;
   now: number;
-  likes?: Record<string, boolean>;
-  settings?: AppSettings | null;
   /** 管理画面等で非表示状態を表示するかどうか */
   showModerationBadge?: boolean;
 }
@@ -37,22 +31,15 @@ export default function PostCard({
   session,
   authorXp,
   now,
-  likes,
-  settings,
   showModerationBadge = false,
 }: PostCardProps) {
-  const comments = commentsToArray(post.comments);
-  const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(post.text);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [moderating, setModerating] = useState(false);
-  const [liking, setLiking] = useState(false);
 
   const isHidden = Boolean(post.moderation?.hidden);
-  const isLiked = hasUserLiked(likes, session.accountId);
-  const likeCount = countLikes(likes);
 
   // 自分の投稿のみ編集・削除できる。運営用アカウントは全投稿を操作できる
   const canManage =
@@ -62,23 +49,6 @@ export default function PostCard({
   const startEdit = () => {
     setEditText(post.text);
     setEditing(true);
-  };
-
-  const handleToggleLike = async () => {
-    if (liking || !session.accountId) return;
-    if (isHidden && !session.admin) {
-      alert("この投稿は非表示になっているためいいねできません。");
-      return;
-    }
-    setLiking(true);
-    try {
-      await toggleLike(post.id, session.accountId, isLiked);
-    } catch (err) {
-      console.error(err);
-      alert("いいねの更新に失敗しました。");
-    } finally {
-      setLiking(false);
-    }
   };
 
   const handleToggleHide = async () => {
@@ -138,7 +108,7 @@ export default function PostCard({
     const msg =
       session.admin && post.accountId !== session.accountId
         ? "【二段階確認】運営権限でこの投稿を完全に削除しますか？\n（復元できなくなります。通常は「非表示」を推奨します）"
-        : "【確認】この投稿を完全に削除しますか？コメントも削除されます。";
+        : "【確認】この投稿を完全に削除しますか？";
     if (!confirm(msg)) return;
 
     setDeleting(true);
@@ -262,52 +232,6 @@ export default function PostCard({
             />
           )}
         </div>
-      )}
-
-      {/* アクション行（いいね・コメント） */}
-      <div className="flex items-center gap-2 px-4 py-2 border-t border-ink-100/40">
-        {/* いいねボタン */}
-        <button
-          type="button"
-          onClick={handleToggleLike}
-          disabled={liking || (isHidden && !session.admin)}
-          className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
-            isLiked
-              ? "text-red-500 hover:bg-red-500/10"
-              : "text-ink-500 hover:bg-ink-100 hover:text-ink-900"
-          }`}
-          aria-label={isLiked ? "いいねを取り消す" : "いいねする"}
-        >
-          <PixelHeart
-            size={16}
-            filled={isLiked}
-            className={`transition-transform duration-150 ${isLiked ? "scale-110" : ""}`}
-          />
-          <span>{likeCount > 0 ? likeCount : "いいね"}</span>
-        </button>
-
-        {/* コメントボタン */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-ink-500 transition hover:bg-ink-100 hover:text-ink-900"
-        >
-          <PixelComment size={16} />
-          <span>
-            {comments.length > 0 ? `コメント ${comments.length}` : "コメント"}
-          </span>
-        </button>
-      </div>
-
-      {/* コメント欄 */}
-      {(open || comments.length > 0) && (
-        <CommentSection
-          postId={post.id}
-          comments={comments}
-          session={session}
-          now={now}
-          settings={settings}
-        />
       )}
 
       {editing && (

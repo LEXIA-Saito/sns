@@ -19,11 +19,10 @@ import {
 import { db, storage } from "./firebase";
 import { getRosterName } from "./roster";
 import { buildAvatarResetUpdates } from "./avatarReset";
-import type { Media, Post, Comment, ModerationInfo, AppSettings, AccountActivity, LikesByPost } from "./types";
+import type { Media, Post, ModerationInfo, AppSettings, AccountActivity } from "./types";
 
 const POSTS_PATH = "posts";
 const SETTINGS_PATH = "settings";
-const LIKES_PATH = "likes";
 const ACTIVITY_PATH = "accountActivity";
 const AVATAR_RESET_PATH = "avatarResets";
 
@@ -194,41 +193,8 @@ export async function deletePost(post: Post): Promise<void> {
   }
 }
 
-/**
- * 投稿にコメントを追加する。
- */
-export async function addComment(
-  postId: string,
-  accountId: string,
-  name: string,
-  text: string,
-  avatarUrl?: string
-): Promise<void> {
-  const fixedName = accountId ? getRosterName(accountId) : name.trim();
-  const newRef = push(ref(db, `${POSTS_PATH}/${postId}/comments`));
-  await set(newRef, {
-    accountId,
-    name: fixedName,
-    ...(avatarUrl ? { avatarUrl } : {}),
-    text: text.trim(),
-    createdAt: serverTimestamp(),
-  });
-}
-
-/**
- * コメントオブジェクトを配列に変換(古い順)。
- */
-export function commentsToArray(
-  comments?: Record<string, Comment>
-): Comment[] {
-  if (!comments) return [];
-  return Object.entries(comments)
-    .map(([id, c]) => ({ ...c, id }))
-    .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
-}
-
 // -------------------------------------------------------------
-// 運営用モデレーションAPI (非表示・復元・コメント削除)
+// 運営用モデレーションAPI (非表示・復元)
 // -------------------------------------------------------------
 
 /**
@@ -239,20 +205,6 @@ export async function setPostModeration(
   moderation: ModerationInfo
 ): Promise<void> {
   await update(ref(db, `${POSTS_PATH}/${postId}/moderation`), {
-    ...moderation,
-    moderatedAt: serverTimestamp(),
-  });
-}
-
-/**
- * コメントの非表示・復元を更新
- */
-export async function setCommentModeration(
-  postId: string,
-  commentId: string,
-  moderation: ModerationInfo
-): Promise<void> {
-  await update(ref(db, `${POSTS_PATH}/${postId}/comments/${commentId}/moderation`), {
     ...moderation,
     moderatedAt: serverTimestamp(),
   });
@@ -286,16 +238,6 @@ export function subscribeAvatarReset(
     const value = snapshot.val();
     callback(typeof value === "number" ? value : undefined);
   });
-}
-
-/**
- * コメントを完全に削除する
- */
-export async function deleteComment(
-  postId: string,
-  commentId: string
-): Promise<void> {
-  await remove(ref(db, `${POSTS_PATH}/${postId}/comments/${commentId}`));
 }
 
 // -------------------------------------------------------------
@@ -332,47 +274,6 @@ export async function updateSettings(
     ...settings,
     updatedAt: serverTimestamp(),
   });
-}
-
-// -------------------------------------------------------------
-// いいね API (likes)
-// -------------------------------------------------------------
-
-/**
- * 全投稿のいいね状態をリアルタイム購読
- */
-export function subscribeLikes(
-  callback: (likes: LikesByPost) => void,
-  onError?: (error: Error) => void
-): Unsubscribe {
-  return onValue(
-    ref(db, LIKES_PATH),
-    (snapshot) => {
-      const val = snapshot.val() as LikesByPost | null;
-      callback(val || {});
-    },
-    (err) => {
-      console.error("Likes read error:", err);
-      onError?.(err);
-    }
-  );
-}
-
-/**
- * 投稿へのいいねをトグル（切り替え）
- */
-export async function toggleLike(
-  postId: string,
-  accountId: string,
-  currentlyLiked: boolean
-): Promise<void> {
-  if (!accountId || !postId) return;
-  const likeRef = ref(db, `${LIKES_PATH}/${postId}/${accountId}`);
-  if (currentlyLiked) {
-    await remove(likeRef);
-  } else {
-    await set(likeRef, true);
-  }
 }
 
 // -------------------------------------------------------------

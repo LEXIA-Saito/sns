@@ -12,11 +12,9 @@ export interface AccountProgressItem {
   postCount: number; // 非表示含む投稿総数
   imagePostCount: number; // 写真付き投稿数
   videoPostCount: number; // 動画付き投稿数
-  commentCount: number; // コメント総数
   hiddenPostCount: number; // 非表示にされた投稿数
   hasPosted: boolean;
   hasImagePosted: boolean;
-  hasCommented: boolean;
 }
 
 /**
@@ -27,12 +25,11 @@ export function buildAccountProgressList(
   allActivities: Record<string, AccountActivity> = {},
   includeAdmin: boolean = true
 ): AccountProgressItem[] {
-  // アカウントごとの投稿・コメント集計
+  // アカウントごとの投稿集計
   const postCounts: Record<string, number> = {};
   const imageCounts: Record<string, number> = {};
   const videoCounts: Record<string, number> = {};
   const hiddenCounts: Record<string, number> = {};
-  const commentCounts: Record<string, number> = {};
 
   for (const post of allPosts) {
     const aid = post.accountId;
@@ -45,15 +42,6 @@ export function buildAccountProgressList(
       }
       if (post.moderation?.hidden) {
         hiddenCounts[aid] = (hiddenCounts[aid] ?? 0) + 1;
-      }
-    }
-
-    // コメント集計
-    if (post.comments) {
-      for (const comment of Object.values(post.comments)) {
-        if (comment.accountId) {
-          commentCounts[comment.accountId] = (commentCounts[comment.accountId] ?? 0) + 1;
-        }
       }
     }
   }
@@ -76,7 +64,6 @@ export function buildAccountProgressList(
     const imgCount = imageCounts[accountId] ?? 0;
     const vCount = videoCounts[accountId] ?? 0;
     const hCount = hiddenCounts[accountId] ?? 0;
-    const cCount = commentCounts[accountId] ?? 0;
 
     items.push({
       serial,
@@ -88,11 +75,9 @@ export function buildAccountProgressList(
       postCount: pCount,
       imagePostCount: imgCount,
       videoPostCount: vCount,
-      commentCount: cCount,
       hiddenPostCount: hCount,
       hasPosted: pCount > 0,
       hasImagePosted: imgCount > 0,
-      hasCommented: cCount > 0,
     });
   }
 
@@ -124,7 +109,6 @@ export function generateProgressCsv(items: AccountProgressItem[]): string {
     "投稿数",
     "写真投稿数",
     "動画投稿数",
-    "コメント数",
     "非表示投稿数",
   ];
 
@@ -137,7 +121,6 @@ export function generateProgressCsv(items: AccountProgressItem[]): string {
     escapeCsv(item.postCount),
     escapeCsv(item.imagePostCount),
     escapeCsv(item.videoPostCount),
-    escapeCsv(item.commentCount),
     escapeCsv(item.hiddenPostCount),
   ]);
 

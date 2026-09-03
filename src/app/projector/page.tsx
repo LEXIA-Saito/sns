@@ -12,14 +12,13 @@ import {
   Play,
   Settings,
   Shield,
-  MessageCircle,
 } from "lucide-react";
 import AdminOnly from "@/components/AdminOnly";
 import Avatar from "@/components/Avatar";
 import LevelBadge from "@/components/LevelBadge";
-import type { Post, Comment } from "@/lib/types";
+import type { Post } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
-import { filterVisiblePosts, filterVisibleComments } from "@/lib/moderation";
+import { filterVisiblePosts } from "@/lib/moderation";
 import { xpByAccount } from "@/lib/level";
 
 export default function ProjectorPage() {
@@ -117,11 +116,6 @@ export default function ProjectorPage() {
   };
 
   // 表示中投稿の公開コメント
-  const visibleComments: Comment[] = useMemo(() => {
-    if (!currentPost?.comments) return [];
-    const arr = Object.entries(currentPost.comments).map(([id, c]) => ({ ...c, id }));
-    return filterVisibleComments(arr).slice(-3); // 最新3件
-  }, [currentPost]);
 
   return (
     <AdminOnly
@@ -205,31 +199,6 @@ export default function ProjectorPage() {
                   </div>
                 )}
               </div>
-
-              {/* 最新コメント（吹き出し形式） */}
-              {visibleComments.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
-                  <div className="flex items-center gap-2 text-xs md:text-sm text-white/40 font-semibold">
-                    <MessageCircle size={16} />
-                    <span>応援コメント</span>
-                  </div>
-                  <div className="space-y-2">
-                    {visibleComments.map((c) => (
-                      <div
-                        key={c.id}
-                        className="rounded-xl border border-white/15 bg-white/[0.06] p-3 text-sm md:text-base text-white/90 flex items-start gap-2.5"
-                      >
-                        <span className="font-bold text-white shrink-0">
-                          {c.name}:
-                        </span>
-                        <span className="text-white/80 line-clamp-2">
-                          {c.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* 投稿番号インジケータ */}
               <div className="mt-4 flex items-center justify-between text-xs text-white/40 font-mono">

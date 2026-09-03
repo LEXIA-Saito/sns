@@ -11,20 +11,15 @@ const posts: Post[] = [
     avatarUrl: "https://example.com/a.jpg",
     text: "こんにちは",
     createdAt: 1,
-    comments: {
-      c1: { id: "c1", accountId: "26-012", name: "山田", avatarUrl: "https://example.com/a.jpg", text: "自分のコメント", createdAt: 2 },
-      c2: { id: "c2", accountId: "26-030", name: "鈴木", avatarUrl: "https://example.com/b.jpg", text: "他人のコメント", createdAt: 3 },
-    },
   },
   { id: "p2", accountId: "26-030", name: "鈴木", avatarUrl: "https://example.com/b.jpg", text: "他人の投稿", createdAt: 4 },
   { id: "p3", accountId: "26-012", name: "山田", text: "アイコンなしの投稿", createdAt: 5 },
 ];
 
-test("本人の投稿とコメントだけアイコンを外す", () => {
+test("本人の投稿だけアイコンを外す", () => {
   const updates = buildAvatarResetUpdates(posts, "26-012");
   assert.deepEqual(updates, {
     "posts/p1/avatarUrl": null,
-    "posts/p1/comments/c1/avatarUrl": null,
   });
 });
 
@@ -43,29 +38,4 @@ test("初期化のあとに本人が入れ直したアイコンは消さない",
 
 test("初期化されていなければ消さない", () => {
   assert.equal(shouldClearLocalAvatar(1000, undefined), false);
-});
-
-// --- コメント削除の可否 -------------------------------------------------
-import { canDeleteComment } from "../src/lib/moderation";
-import type { Comment } from "../src/lib/types";
-
-const mine: Comment = { id: "c1", accountId: "26-012", name: "山田", text: "自分の", createdAt: 1 };
-const others: Comment = { id: "c2", accountId: "26-030", name: "鈴木", text: "他人の", createdAt: 2 };
-const legacy: Comment = { id: "c3", name: "旧データ", text: "投稿者不明", createdAt: 3 };
-
-test("自分のコメントは削除できる", () => {
-  assert.equal(canDeleteComment(mine, "26-012"), true);
-});
-
-test("他人のコメントは削除できない", () => {
-  assert.equal(canDeleteComment(others, "26-012"), false);
-});
-
-test("投稿者が記録されていない旧データは本人でも削除できない", () => {
-  assert.equal(canDeleteComment(legacy, "26-012"), false);
-});
-
-test("運営アカウントは全コメントを削除できる", () => {
-  assert.equal(canDeleteComment(others, "26-000", true), true);
-  assert.equal(canDeleteComment(legacy, "26-000", true), true);
 });
