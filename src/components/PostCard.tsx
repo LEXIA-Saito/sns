@@ -15,6 +15,7 @@ import { deletePost, updatePost, setPostModeration } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
 import LevelBadge from "./LevelBadge";
+import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 
 interface PostCardProps {
   post: Post;
@@ -148,7 +149,8 @@ export default function PostCard({
             <span className="truncate font-semibold text-ink-900">
               {post.name}
             </span>
-            <LevelBadge xp={authorXp} />
+            {/* 運営はレベルの対象外 */}
+            {post.accountId !== ADMIN_ACCOUNT_ID && <LevelBadge xp={authorXp} />}
           </div>
           <time className="text-xs text-ink-400">
             {formatRelativeTime(post.createdAt, now)}

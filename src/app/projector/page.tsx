@@ -20,6 +20,7 @@ import type { Post } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { filterVisiblePosts } from "@/lib/moderation";
 import { isAcademyMember } from "@/lib/roster";
+import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 import { xpByAccount } from "@/lib/level";
 
 export default function ProjectorPage() {
@@ -183,7 +184,9 @@ export default function ProjectorPage() {
                       <span className="text-2xl md:text-4xl font-extrabold tracking-wide">
                         {currentPost.name}
                       </span>
-                      <LevelBadge xp={currentPost.accountId ? xpMap[currentPost.accountId] ?? 0 : 0} />
+                      {currentPost.accountId !== ADMIN_ACCOUNT_ID && (
+                        <LevelBadge xp={currentPost.accountId ? xpMap[currentPost.accountId] ?? 0 : 0} />
+                      )}
                     </div>
                     <p className="mt-1 text-sm md:text-base text-white/50 font-mono">
                       {currentPost.accountId}

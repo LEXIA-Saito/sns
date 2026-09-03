@@ -51,7 +51,8 @@ export default function PostComposer({
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const postStatus = canCreatePost(settings, now, session.admin === true);
+  const isAdmin = session.admin === true;
+  const postStatus = canCreatePost(settings, now, isAdmin);
 
   if (!open) return null;
 
@@ -156,13 +157,16 @@ export default function PostComposer({
                   <p className="text-sm font-semibold text-ink-900">
                     {session.name || "名前未設定"}
                   </p>
-                  <p className="flex items-center gap-1 text-xs text-ink-500">
-                    <LevelIcon rank={tier.rank} size={12} />
-                    レベル {current.level}
-                    <span className="text-ink-400">
-                      ・次まで あと {current.remaining}
-                    </span>
-                  </p>
+                  {/* 運営はレベルの対象外 */}
+                  {!isAdmin && (
+                    <p className="flex items-center gap-1 text-xs text-ink-500">
+                      <LevelIcon rank={tier.rank} size={12} />
+                      レベル {current.level}
+                      <span className="text-ink-400">
+                        ・次まで あと {current.remaining}
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -173,51 +177,53 @@ export default function PostComposer({
               </button>
             </div>
 
-            {/* 横線プログレスバー（アクセシブル対応） */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="font-medium text-ink-500">
-                  Lv.{current.level} 進捗
-                </span>
-                <span className="text-ink-600 font-medium">
-                  {Math.round(current.progress * 100)}%
-                  {willLevelUp ? (
-                    <span className="ml-1.5 font-semibold text-accent">
-                      → Lv.{after.level} UP!
-                    </span>
-                  ) : (
-                    after.progress > current.progress && (
-                      <span className="ml-1.5 font-medium text-accent">
-                        → {Math.round(after.progress * 100)}%
+            {/* 横線プログレスバー（アクセシブル対応）。運営は対象外 */}
+            {!isAdmin && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-medium text-ink-500">
+                    Lv.{current.level} 進捗
+                  </span>
+                  <span className="text-ink-600 font-medium">
+                    {Math.round(current.progress * 100)}%
+                    {willLevelUp ? (
+                      <span className="ml-1.5 font-semibold text-accent">
+                        → Lv.{after.level} UP!
                       </span>
-                    )
-                  )}
-                </span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuenow={Math.round(current.progress * 100)}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label={`レベル${current.level}の経験値進捗`}
-                className="relative h-2 w-full overflow-hidden rounded-full bg-ink-200"
-              >
-                {/* 投稿後見込みプレビューバー */}
+                    ) : (
+                      after.progress > current.progress && (
+                        <span className="ml-1.5 font-medium text-accent">
+                          → {Math.round(after.progress * 100)}%
+                        </span>
+                      )
+                    )}
+                  </span>
+                </div>
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-accent/40 transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, (willLevelUp ? 1 : after.progress) * 100))}%`,
-                  }}
-                />
-                {/* 現在の進捗バー */}
-                <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-300"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, current.progress * 100))}%`,
-                  }}
-                />
+                  role="progressbar"
+                  aria-valuenow={Math.round(current.progress * 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`レベル${current.level}の経験値進捗`}
+                  className="relative h-2 w-full overflow-hidden rounded-full bg-ink-200"
+                >
+                  {/* 投稿後見込みプレビューバー */}
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-accent/40 transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, (willLevelUp ? 1 : after.progress) * 100))}%`,
+                    }}
+                  />
+                  {/* 現在の進捗バー */}
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, Math.max(0, current.progress * 100))}%`,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* 受付状態・締切に関する注意表示 */}
