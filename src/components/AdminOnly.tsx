@@ -9,7 +9,17 @@ import { ADMIN_ACCOUNT_ID, onAuthStateChanged } from "@/lib/auth";
  * 運営用カード（26-000）でログインしているときだけ中身を出す。
  * 参加者がURLを直接開いても見えないようにするための表示制御。
  */
-export default function AdminOnly({ children }: { children: React.ReactNode }) {
+interface AdminOnlyProps {
+  children: React.ReactNode;
+  title?: string;
+  description?: string;
+}
+
+export default function AdminOnly({
+  children,
+  title = "運営用の画面です",
+  description = "この画面は運営用カード（26-000）でログインしている場合のみ表示されます。",
+}: AdminOnlyProps) {
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -28,9 +38,9 @@ export default function AdminOnly({ children }: { children: React.ReactNode }) {
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-media px-6 text-center text-white">
         <Lock size={28} className="text-white/60" />
         <div>
-          <p className="text-base font-bold">運営用の画面です</p>
-          <p className="mt-2 text-sm leading-relaxed text-white/60">
-            データベースの状態は、運営用カードでログインしたときだけ表示されます。
+          <p className="text-base font-bold">{title}</p>
+          <p className="mt-2 text-sm leading-relaxed text-white/60 max-w-sm">
+            {description}
           </p>
         </div>
         <Link

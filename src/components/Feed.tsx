@@ -9,9 +9,18 @@ import {
   Loader2,
   QrCode,
   X,
+  Shield,
+  Tv,
 } from "lucide-react";
-import type { Post } from "@/lib/types";
-import { subscribePosts } from "@/lib/posts";
+import type { Post, AppSettings, LikesByPost } from "@/lib/types";
+import {
+  subscribePosts,
+  subscribeSettings,
+  subscribeLikes,
+  recordAccountLogin,
+} from "@/lib/posts";
+import { filterVisiblePosts } from "@/lib/moderation";
+import { canCreatePost } from "@/lib/settings";
 import { useNow } from "@/lib/useNow";
 import {
   buildSession,
@@ -31,6 +40,8 @@ import Avatar from "./Avatar";
 
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [likes, setLikes] = useState<LikesByPost>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -67,7 +78,14 @@ export default function Feed() {
 
     const unsubscribe = onAuthStateChanged((user) => {
       window.clearTimeout(fallback);
-      setSession(user ? buildSession(user.uid, loadProfile(user.uid)) : null);
+      if (user) {
+        const s = buildSession(user.uid, loadProfile(user.uid));
+        setSession(s);
+        // ログイン成功時に活動履歴を記録
+        recordAccountLogin(user.uid);
+      } else {
+        setSession(null);
+      }
       setSessionReady(true);
     });
     return () => {
@@ -97,7 +115,7 @@ export default function Feed() {
     setSession({ ...session, name, avatarUrl });
   };
 
-  // 投稿の実績から、カード番号ごとの経験値を出す
+  // 投稿の実績から、カード番号ごとの経験値を出す（非表示投稿も実績に含む）
   const xpMap = useMemo(() => {
     const fromPosts = xpByAccount(posts);
     if (!demo) return fromPosts;
@@ -109,23 +127,25 @@ export default function Feed() {
     return merged;
   }, [posts, demo]);
 
-  // リアルタイム購読
+  // リアルタイム購読（posts, settings, likes）
   useEffect(() => {
     if (demo) return;
     if (!firebaseConfigured || !session) {
       setLoading(false);
       return;
     }
-    let unsub: (() => void) | undefined;
+    let unsubPosts: (() => void) | undefined;
+    let unsubSettings: (() => void) | undefined;
+    let unsubLikes: (() => void) | undefined;
+
     try {
-      unsub = subscribePosts(
+      unsubPosts = subscribePosts(
         (list) => {
           setPosts(list);
           setError(null);
           setLoading(false);
         },
         (err) => {
-          // 読み取り権限エラーなど
           const isPermission = /permission/i.test(err.message);
           setError(
             isPermission
@@ -135,14 +155,36 @@ export default function Feed() {
           setLoading(false);
         }
       );
+
+      unsubSettings = subscribeSettings((st) => {
+        setSettings(st);
+      });
+
+      unsubLikes = subscribeLikes((lk) => {
+        setLikes(lk);
+      });
     } catch (e) {
       console.error(e);
       setError("接続に失敗しました。設定をご確認ください。");
       setLoading(false);
     }
-    return () => unsub?.();
+    return () => {
+      unsubPosts?.();
+      unsubSettings?.();
+      unsubLikes?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseConfigured, demo, session?.accountId]);
+
+  // 一般フィードでは非表示投稿を除外
+  const visiblePosts = useMemo(() => {
+    return filterVisiblePosts(posts);
+  }, [posts]);
+
+  // 新規投稿の受付状態判定
+  const postStatus = useMemo(() => {
+    return canCreatePost(settings, now, session?.admin === true);
+  }, [settings, now, session?.admin]);
 
   if (!sessionReady) {
     return (
@@ -174,7 +216,7 @@ export default function Feed() {
               <p className="text-[11px] text-ink-400">例会SNS</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setProfileOpen(true)}
@@ -183,17 +225,40 @@ export default function Feed() {
             >
               <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="sm" />
             </button>
-            {/* データベースの状態は運営用カードでログインしたときだけ出す */}
+
+            {/* 運営アカウント用メニュー */}
             {session.admin && (
-              <Link
-                href="/status"
-                className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
-                aria-label="データベースの状態を表示"
-              >
-                <Database size={15} />
-                <span className="hidden sm:inline">DB状態</span>
-              </Link>
+              <>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-1 rounded-md border border-ink-200 px-2 py-1.5 text-xs font-medium text-ink-700 transition hover:border-accent hover:text-accent"
+                  title="管理画面（受付管理・モデレーション・進捗）"
+                  aria-label="管理画面"
+                >
+                  <Shield size={14} className="text-accent" />
+                  <span className="hidden sm:inline">管理</span>
+                </Link>
+                <Link
+                  href="/projector"
+                  className="flex items-center gap-1 rounded-md border border-ink-200 px-2 py-1.5 text-xs font-medium text-ink-700 transition hover:border-accent hover:text-accent"
+                  title="会場投影用スライドショー"
+                  aria-label="投影画面"
+                >
+                  <Tv size={14} />
+                  <span className="hidden sm:inline">投影</span>
+                </Link>
+                <Link
+                  href="/status"
+                  className="flex items-center gap-1 rounded-md border border-ink-200 px-2 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+                  title="データベースの状態を表示"
+                  aria-label="データベースの状態"
+                >
+                  <Database size={14} />
+                  <span className="hidden md:inline">DB</span>
+                </Link>
+              </>
             )}
+
             <button
               type="button"
               onClick={() => setQrOpen(true)}
@@ -201,7 +266,7 @@ export default function Feed() {
               aria-label="QRコードを表示"
             >
               <QrCode size={15} />
-              <span className="hidden sm:inline">QRコード</span>
+              <span className="hidden sm:inline">QR</span>
             </button>
           </div>
         </div>
@@ -222,14 +287,12 @@ export default function Feed() {
               データベースに接続できません
             </p>
             <p className="mt-2 text-sm leading-relaxed text-ink-500">
-              Firebase Realtime Database の読み取りが許可されていません。
-              Firebaseコンソールで <code className="rounded bg-ink-100 px-1">posts</code>{" "}
-              のセキュリティルール(読み書き許可)を設定してください。
+              Firebase Realtime Database のセキュリティルールをご確認ください。
             </p>
           </div>
         ) : error ? (
           <div className="py-24 text-center text-sm text-ink-500">{error}</div>
-        ) : posts.length === 0 ? (
+        ) : visiblePosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <MessageSquareText size={40} className="text-ink-300" />
             <p className="mt-4 text-base font-medium text-ink-700">
@@ -241,32 +304,32 @@ export default function Feed() {
           </div>
         ) : (
           <div className="space-y-4">
-            {posts.map((post) => (
+            {visiblePosts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
                 session={session}
                 authorXp={post.accountId ? xpMap[post.accountId] ?? 0 : 0}
                 now={now}
+                likes={likes[post.id]}
+                settings={settings}
               />
             ))}
           </div>
         )}
       </main>
 
+      {/* サイトQRコードモーダル */}
       {qrOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 px-5 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="qr-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/40 p-4"
           onClick={() => setQrOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-surface p-5 text-center shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-ink-200 bg-surface p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center justify-between">
               <div className="text-left">
                 <h2 id="qr-title" className="text-base font-bold text-ink-900">
                   サイトQRコード
@@ -300,7 +363,7 @@ export default function Feed() {
         className="app-fab fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-fg shadow-lg transition hover:bg-accent-hover active:scale-95"
       >
         <PenSquare size={18} />
-        投稿する
+        <span>{postStatus.allowed ? "投稿する" : "投稿案内・締切"}</span>
       </button>
 
       <PostComposer
@@ -312,6 +375,8 @@ export default function Feed() {
           setComposerOpen(false);
           setProfileOpen(true);
         }}
+        settings={settings}
+        now={now}
       />
 
       <ProfileSetup

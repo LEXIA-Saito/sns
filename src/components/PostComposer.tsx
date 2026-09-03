@@ -1,15 +1,22 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { X, ImagePlus, Film, Loader2 } from "lucide-react";
+import { X, ImagePlus, Film, Loader2, Sparkles, Clock, AlertCircle } from "lucide-react";
 import { createPost } from "@/lib/posts";
 import type { Session } from "@/lib/session";
+import type { AppSettings } from "@/lib/types";
 import {
   XP_MEDIA_POST,
   XP_TEXT_POST,
   levelFromXp,
   tierFromLevel,
 } from "@/lib/level";
+import {
+  canCreatePost,
+  DEFAULT_POST_GUIDE_LINES,
+  DEFAULT_POST_GUIDE_NOTICE,
+  formatJstDateTime,
+} from "@/lib/settings";
 import Avatar from "./Avatar";
 import LevelIcon from "./LevelIcon";
 
@@ -20,6 +27,8 @@ interface PostComposerProps {
   /** 自分の経験値（投稿の実績から集計したもの） */
   xp: number;
   onProfileEdit: () => void;
+  settings?: AppSettings | null;
+  now?: number;
 }
 
 const MAX_FILE_MB = 50;
@@ -30,6 +39,8 @@ export default function PostComposer({
   session,
   xp,
   onProfileEdit,
+  settings,
+  now = Date.now(),
 }: PostComposerProps) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -37,6 +48,8 @@ export default function PostComposer({
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const postStatus = canCreatePost(settings, now, session.admin === true);
 
   if (!open) return null;
 
@@ -71,6 +84,10 @@ export default function PostComposer({
   };
 
   const handleSubmit = async () => {
+    if (!postStatus.allowed) {
+      alert(postStatus.reason || "投稿受付は現在停止しています。");
+      return;
+    }
     if (!session.name.trim()) {
       alert("プロフィールでお名前を設定してください");
       onProfileEdit();
@@ -192,6 +209,57 @@ export default function PostComposer({
             </div>
           </div>
 
+          {/* 受付状態・締切に関する注意表示 */}
+          {!postStatus.allowed ? (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 flex items-start gap-2.5">
+              <AlertCircle size={16} className="shrink-0 text-amber-400 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-200">
+                  {postStatus.isDeadlinePassed ? "投稿受付期間終了" : "投稿受付停止中"}
+                </p>
+                <p className="mt-0.5 text-amber-300/90 leading-relaxed">
+                  {postStatus.reason}
+                </p>
+              </div>
+            </div>
+          ) : session.admin ? (
+            <div className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/60 flex items-center justify-between">
+              <span>※ 運営アカウントのため受付状態に関わらず投稿可能です</span>
+              {settings?.postDeadline && (
+                <span className="text-white/40">締切: {formatJstDateTime(settings.postDeadline)}</span>
+              )}
+            </div>
+          ) : settings?.postDeadline ? (
+            <div className="rounded-md border border-ink-200 bg-ink-50 px-3 py-1.5 text-[11px] text-ink-500 flex items-center gap-1.5">
+              <Clock size={12} className="text-ink-400" />
+              <span>投稿締切: {formatJstDateTime(settings.postDeadline)} まで</span>
+            </div>
+          ) : null}
+
+          {/* 投稿テーマ・ガイド（常時表示） */}
+          <div className="rounded-lg border border-ink-200 bg-ink-50/50 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-900">
+                <Sparkles size={13} className="text-accent" />
+                投稿のテーマ・ガイド
+              </span>
+              <span className="text-[11px] font-medium text-accent">
+                {settings?.postGuideNotice || DEFAULT_POST_GUIDE_NOTICE}
+              </span>
+            </div>
+            <ul className="space-y-1 text-xs text-ink-700">
+              {(settings?.postGuideLines || DEFAULT_POST_GUIDE_LINES).map((line, idx) => (
+                <li key={idx} className="flex items-start gap-2 leading-relaxed">
+                  <span className="text-accent font-bold">・</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="pt-1 text-[11px] text-ink-400 border-t border-ink-200/60 leading-normal">
+              ※ 写真付き投稿が推奨されていますが、テキストのみの投稿（+10 XP）も可能です。
+            </p>
+          </div>
+
           {/* テキスト */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-500">
@@ -277,14 +345,16 @@ export default function PostComposer({
         <div className="border-t border-ink-100 px-4 py-3">
           <button
             onClick={handleSubmit}
-            disabled={submitting}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={submitting || !postStatus.allowed}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-2.5 text-sm font-semibold text-accent-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
                 投稿中...
               </>
+            ) : !postStatus.allowed ? (
+              postStatus.isDeadlinePassed ? "投稿受付期間終了" : "投稿受付停止中"
             ) : (
               "投稿する"
             )}

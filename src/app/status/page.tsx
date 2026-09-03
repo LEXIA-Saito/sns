@@ -170,14 +170,22 @@ export default async function StatusPage() {
   return (
     <AdminOnly>
       <main className="min-h-screen bg-media px-4 py-6 text-white">
-      <div className="mx-auto max-w-4xl">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
-        >
-          <ArrowLeft size={16} />
-          SNSへ戻る
-        </Link>
+        <div className="mx-auto max-w-4xl">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
+            >
+              <ArrowLeft size={16} />
+              SNSへ戻る
+            </Link>
+            <Link
+              href="/admin"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
+            >
+              管理画面へ
+            </Link>
+          </div>
 
         <section className="mt-5 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] shadow-2xl shadow-black/30">
           <div className="bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.22),transparent_35%),linear-gradient(135deg,rgba(24,24,27,0.9),rgba(63,63,70,0.65))] p-6 sm:p-8">

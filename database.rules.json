@@ -2,13 +2,41 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "settings": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === '26-000'"
+    },
+    "accountActivity": {
+      ".read": "auth != null && auth.uid === '26-000'",
+      "$accountId": {
+        ".write": "auth != null && (auth.uid === $accountId || auth.uid === '26-000')",
+        "lastLoginAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "firstLoginAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "likes": {
+      ".read": "auth != null",
+      "$postId": {
+        "$accountId": {
+          ".write": "auth != null && auth.uid === $accountId && (!root.child('posts').child($postId).child('moderation/hidden').val() || auth.uid === '26-000')",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
     "posts": {
       ".read": "auth != null",
       ".indexOn": [
         "createdAt"
       ],
       "$postId": {
-        ".write": "auth != null && (!data.exists() ? newData.child('accountId').val() === auth.uid : (data.child('accountId').val() === auth.uid || auth.uid === '26-000'))",
+        ".write": "auth != null && (!data.exists() ? (auth.uid === '26-000' || (newData.child('accountId').val() === auth.uid && root.child('settings/postAccepting').val() !== false && (!root.child('settings/postDeadline').exists() || now < root.child('settings/postDeadline').val()))) : (!newData.exists() && (data.child('accountId').val() === auth.uid || auth.uid === '26-000')))",
         ".validate": "newData.hasChildren(['accountId', 'name', 'text', 'createdAt'])",
         "accountId": {
           ".validate": "newData.val() === auth.uid || auth.uid === '26-000'"
@@ -17,6 +45,7 @@
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
         },
         "text": {
+          ".write": "auth != null && (data.parent().child('accountId').val() === auth.uid || auth.uid === '26-000')",
           ".validate": "newData.isString() && newData.val().length <= 2000"
         },
         "avatarUrl": {
@@ -26,7 +55,27 @@
           ".validate": "newData.isNumber()"
         },
         "updatedAt": {
+          ".write": "auth != null && (data.parent().child('accountId').val() === auth.uid || auth.uid === '26-000')",
           ".validate": "newData.isNumber()"
+        },
+        "moderation": {
+          ".write": "auth != null && auth.uid === '26-000'",
+          ".validate": "auth.uid === '26-000' || (data.exists() && data.val() === newData.val())",
+          "hidden": {
+            ".validate": "newData.isBoolean()"
+          },
+          "reason": {
+            ".validate": "newData.isString()"
+          },
+          "moderatedAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "moderatedBy": {
+            ".validate": "newData.val() === '26-000'"
+          },
+          "$other": {
+            ".validate": false
+          }
         },
         "media": {
           "type": {
@@ -44,7 +93,7 @@
         },
         "comments": {
           "$commentId": {
-            ".write": "auth != null && (!data.exists() ? newData.child('accountId').val() === auth.uid : (data.child('accountId').val() === auth.uid || auth.uid === '26-000'))",
+            ".write": "auth != null && (!data.exists() ? (auth.uid === '26-000' || (newData.child('accountId').val() === auth.uid && root.child('settings/commentAccepting').val() !== false && (!root.child('settings/commentDeadline').exists() || now < root.child('settings/commentDeadline').val()))) : (!newData.exists() && (data.child('accountId').val() === auth.uid || auth.uid === '26-000')))",
             ".validate": "newData.hasChildren(['accountId', 'name', 'text', 'createdAt'])",
             "accountId": {
               ".validate": "newData.val() === auth.uid || auth.uid === '26-000'"
@@ -60,6 +109,25 @@
             },
             "createdAt": {
               ".validate": "newData.isNumber()"
+            },
+            "moderation": {
+              ".write": "auth != null && auth.uid === '26-000'",
+              ".validate": "auth.uid === '26-000' || (data.exists() && data.val() === newData.val())",
+              "hidden": {
+                ".validate": "newData.isBoolean()"
+              },
+              "reason": {
+                ".validate": "newData.isString()"
+              },
+              "moderatedAt": {
+                ".validate": "newData.isNumber()"
+              },
+              "moderatedBy": {
+                ".validate": "newData.val() === '26-000'"
+              },
+              "$other": {
+                ".validate": false
+              }
             },
             "$other": {
               ".validate": false

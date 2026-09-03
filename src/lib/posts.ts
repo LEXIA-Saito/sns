@@ -18,9 +18,12 @@ import {
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { getRosterName } from "./roster";
-import type { Media, Post, Comment } from "./types";
+import type { Media, Post, Comment, ModerationInfo, AppSettings, AccountActivity, LikesByPost } from "./types";
 
 const POSTS_PATH = "posts";
+const SETTINGS_PATH = "settings";
+const LIKES_PATH = "likes";
+const ACTIVITY_PATH = "accountActivity";
 
 /**
  * 投稿の購読(リアルタイム)。新しい順に並べたPost配列をコールバックで返す。
@@ -220,4 +223,161 @@ export function commentsToArray(
   return Object.entries(comments)
     .map(([id, c]) => ({ ...c, id }))
     .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+}
+
+// -------------------------------------------------------------
+// 運営用モデレーションAPI (非表示・復元・コメント削除)
+// -------------------------------------------------------------
+
+/**
+ * 投稿の非表示・復元を更新
+ */
+export async function setPostModeration(
+  postId: string,
+  moderation: ModerationInfo
+): Promise<void> {
+  await update(ref(db, `${POSTS_PATH}/${postId}/moderation`), {
+    ...moderation,
+    moderatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * コメントの非表示・復元を更新
+ */
+export async function setCommentModeration(
+  postId: string,
+  commentId: string,
+  moderation: ModerationInfo
+): Promise<void> {
+  await update(ref(db, `${POSTS_PATH}/${postId}/comments/${commentId}/moderation`), {
+    ...moderation,
+    moderatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * コメントを完全に削除する
+ */
+export async function deleteComment(
+  postId: string,
+  commentId: string
+): Promise<void> {
+  await remove(ref(db, `${POSTS_PATH}/${postId}/comments/${commentId}`));
+}
+
+// -------------------------------------------------------------
+// 受付設定 API (settings)
+// -------------------------------------------------------------
+
+/**
+ * 受付設定のリアルタイム購読
+ */
+export function subscribeSettings(
+  callback: (settings: AppSettings | null) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onValue(
+    ref(db, SETTINGS_PATH),
+    (snapshot) => {
+      const val = snapshot.val() as AppSettings | null;
+      callback(val);
+    },
+    (err) => {
+      console.error("Settings read error:", err);
+      onError?.(err);
+    }
+  );
+}
+
+/**
+ * 受付設定の更新（運営のみ）
+ */
+export async function updateSettings(
+  settings: Partial<AppSettings>
+): Promise<void> {
+  await update(ref(db, SETTINGS_PATH), {
+    ...settings,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// -------------------------------------------------------------
+// いいね API (likes)
+// -------------------------------------------------------------
+
+/**
+ * 全投稿のいいね状態をリアルタイム購読
+ */
+export function subscribeLikes(
+  callback: (likes: LikesByPost) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onValue(
+    ref(db, LIKES_PATH),
+    (snapshot) => {
+      const val = snapshot.val() as LikesByPost | null;
+      callback(val || {});
+    },
+    (err) => {
+      console.error("Likes read error:", err);
+      onError?.(err);
+    }
+  );
+}
+
+/**
+ * 投稿へのいいねをトグル（切り替え）
+ */
+export async function toggleLike(
+  postId: string,
+  accountId: string,
+  currentlyLiked: boolean
+): Promise<void> {
+  if (!accountId || !postId) return;
+  const likeRef = ref(db, `${LIKES_PATH}/${postId}/${accountId}`);
+  if (currentlyLiked) {
+    await remove(likeRef);
+  } else {
+    await set(likeRef, true);
+  }
+}
+
+// -------------------------------------------------------------
+// アカウント活動履歴 API (accountActivity)
+// -------------------------------------------------------------
+
+/**
+ * ログイン日時の記録
+ */
+export async function recordAccountLogin(accountId: string): Promise<void> {
+  if (!accountId) return;
+  try {
+    await update(ref(db, `${ACTIVITY_PATH}/${accountId}`), {
+      lastLoginAt: serverTimestamp(),
+    });
+  } catch (err) {
+    // ログイン処理自体を阻害しないようログのみ
+    console.warn("recordAccountLogin error:", err);
+  }
+}
+
+/**
+ * 全アカウントの活動履歴を購読（運営画面用）
+ */
+export function subscribeAllActivities(
+  callback: (activities: Record<string, AccountActivity>) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onValue(
+    ref(db, ACTIVITY_PATH),
+    (snapshot) => {
+      const val = snapshot.val() as Record<string, AccountActivity> | null;
+      callback(val || {});
+    },
+    (err) => {
+      console.error("Activities read error:", err);
+      onError?.(err);
+    }
+  );
 }
