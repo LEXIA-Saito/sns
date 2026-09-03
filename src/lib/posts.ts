@@ -211,6 +211,39 @@ export async function setPostModeration(
 }
 
 /**
+ * 運営が全投稿を削除する。
+ * Storage の画像・動画も消してから、投稿をまとめて削除する。
+ * 画像の削除に失敗しても投稿の削除は続ける（残骸より投稿が消えることを優先）。
+ * 戻り値は削除した投稿数。
+ */
+export async function deleteAllPosts(
+  posts: Post[],
+  onProgress?: (done: number, total: number) => void
+): Promise<number> {
+  let done = 0;
+  for (const post of posts) {
+    if (post.media?.path) {
+      try {
+        await deleteObject(storageRef(storage, post.media.path));
+      } catch (error) {
+        console.warn("Storage media delete error:", error);
+      }
+    }
+    done += 1;
+    onProgress?.(done, posts.length);
+  }
+
+  const updates: Record<string, null> = {};
+  for (const post of posts) {
+    updates[`${POSTS_PATH}/${post.id}`] = null;
+  }
+  if (Object.keys(updates).length > 0) {
+    await update(ref(db), updates);
+  }
+  return posts.length;
+}
+
+/**
  * 運営が、あるカードのアイコンをデフォルト（名前のみ）へ戻す。
  * 過去の投稿・コメントからも外し、本人の端末にも初期化を伝える。
  * 戻り値は外した件数。

@@ -37,6 +37,7 @@ import {
   setPostModeration,
   deletePost,
   resetAccountAvatar,
+  deleteAllPosts,
 } from "@/lib/posts";
 import {
   formatJstDateTime,
@@ -72,6 +73,10 @@ export default function AdminDashboardPage() {
   // 投稿モデレーション状態
   const [postFilter, setPostFilter] = useState<"all" | "hidden">("all");
   const [postSearch, setPostSearch] = useState("");
+
+  // 全投稿削除の実行状態
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteAllProgress, setDeleteAllProgress] = useState("");
 
   // アイコン初期化の実行中カード
   const [resettingAvatarId, setResettingAvatarId] = useState<string | null>(null);
@@ -221,6 +226,40 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error(err);
       notify("削除に失敗しました", "error");
+    }
+  };
+
+  // 全投稿の削除。取り返しがつかないので二重に確認する
+  const handleDeleteAllPosts = async () => {
+    if (posts.length === 0) {
+      notify("削除できる投稿がありません");
+      return;
+    }
+    if (
+      !confirm(
+        `【二段階確認】投稿 ${posts.length} 件をすべて削除します。\n写真・動画もあわせて消え、復元できません。続けますか？`
+      )
+    ) {
+      return;
+    }
+    const typed = prompt(`本当に削除する場合は「削除」と入力してください（${posts.length} 件）`);
+    if (typed?.trim() !== "削除") {
+      notify("入力が一致しなかったため中止しました");
+      return;
+    }
+
+    setDeletingAll(true);
+    try {
+      const count = await deleteAllPosts(posts, (doneCount, total) =>
+        setDeleteAllProgress(`画像を削除中... ${doneCount}/${total}`)
+      );
+      notify(`投稿 ${count} 件をすべて削除しました`);
+    } catch (err) {
+      console.error(err);
+      notify("全削除に失敗しました", "error");
+    } finally {
+      setDeletingAll(false);
+      setDeleteAllProgress("");
     }
   };
 
@@ -636,6 +675,16 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteAllPosts()}
+                    disabled={deletingAll || posts.length === 0}
+                    className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {deletingAll ? deleteAllProgress || "削除中..." : `全投稿を削除 (${posts.length})`}
+                  </button>
+
                 <div className="relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
                   <input
@@ -645,6 +694,7 @@ export default function AdminDashboardPage() {
                     placeholder="氏名・ID・本文で検索..."
                     className="w-full sm:w-64 rounded-md border border-ink-200 bg-surface pl-8 pr-3 py-1.5 text-xs text-ink-900 outline-none focus:border-accent"
                   />
+                </div>
                 </div>
               </div>
 
