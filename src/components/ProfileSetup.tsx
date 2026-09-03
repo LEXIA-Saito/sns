@@ -27,17 +27,15 @@ export default function ProfileSetup({
   onSave,
   onLogout,
 }: ProfileSetupProps) {
-  const [name, setName] = useState(defaultName);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(defaultAvatarUrl);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
-      setName(defaultName);
       setAvatarUrl(defaultAvatarUrl);
     }
-  }, [defaultName, defaultAvatarUrl, open]);
+  }, [defaultAvatarUrl, open]);
 
   if (!open) return null;
 
@@ -61,11 +59,7 @@ export default function ProfileSetup({
   };
 
   const handleSave = () => {
-    if (!name.trim()) {
-      alert("お名前を入力してください");
-      return;
-    }
-    onSave(name.trim(), avatarUrl);
+    onSave(defaultName, avatarUrl);
     onClose();
   };
 
@@ -100,7 +94,7 @@ export default function ProfileSetup({
         <div className="space-y-6 px-5 py-6">
           {required && (
             <p className="rounded-lg bg-ink-50 px-3 py-2.5 text-xs leading-relaxed text-ink-600">
-              投稿に表示される名前を決めてください。あとから変更できます。
+              投稿に表示されるプロフィール画像を設定できます。あとから変更できます。
             </p>
           )}
 
@@ -110,7 +104,7 @@ export default function ProfileSetup({
               className="relative group cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Avatar name={name || "?"} avatarUrl={avatarUrl} size="xl" />
+              <Avatar name={defaultName || "?"} avatarUrl={avatarUrl} size="xl" />
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
                 {isUploading ? (
                   <Loader2 size={24} className="animate-spin text-white" />
@@ -135,18 +129,18 @@ export default function ProfileSetup({
             />
           </div>
 
-          {/* 名前 */}
+          {/* 名前（読み取り専用表示） */}
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-500">
               お名前
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例:齋藤 雅人"
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-900 outline-none focus:border-accent"
-            />
+            <div className="flex items-center justify-between rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5">
+              <span className="text-sm font-semibold text-ink-900">{defaultName || "名前未設定"}</span>
+              <span className="rounded bg-ink-200 px-1.5 py-0.5 text-[10px] font-medium text-ink-600">固定</span>
+            </div>
+            <p className="mt-1.5 text-[11px] text-ink-400">
+              ※ お名前はアカウントカードの名簿に基づき固定されています。
+            </p>
           </div>
 
         </div>

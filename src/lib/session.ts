@@ -29,36 +29,51 @@ function keyFor(accountId: string) {
 }
 
 export function loadProfile(accountId: string): Profile {
-  if (typeof window === "undefined") return { name: "" };
-  const rosterName = getRosterName(accountId);
+  const fixedName = getRosterName(accountId);
+  if (typeof window === "undefined") return { name: fixedName };
+  let avatarUrl: string | undefined;
   try {
     const raw = localStorage.getItem(keyFor(accountId));
     if (raw) {
-      const parsed = JSON.parse(raw) as Profile;
-      return {
-        name: parsed.name?.trim() ? parsed.name : rosterName,
-        avatarUrl: parsed.avatarUrl,
-      };
+      const parsed = JSON.parse(raw) as Partial<Profile>;
+      avatarUrl = parsed.avatarUrl;
     }
   } catch {
     // 壊れていたら初期値に戻す
   }
-  const legacy = readLegacyProfile();
+  if (!avatarUrl) {
+    const legacy = readLegacyProfile();
+    avatarUrl = legacy.avatarUrl;
+  }
   return {
-    name: legacy.name?.trim() ? legacy.name : rosterName,
-    avatarUrl: legacy.avatarUrl,
+    name: fixedName,
+    avatarUrl,
   };
 }
 
-export function saveProfile(accountId: string, profile: Profile): void {
-  localStorage.setItem(keyFor(accountId), JSON.stringify(profile));
+export function saveProfile(accountId: string, profile: Partial<Profile>): void {
+  if (typeof window === "undefined") return;
+  const fixedName = getRosterName(accountId);
+  try {
+    localStorage.setItem(
+      keyFor(accountId),
+      JSON.stringify({
+        name: fixedName,
+        avatarUrl: profile.avatarUrl,
+      })
+    );
+  } catch {
+    // ignore
+  }
 }
 
 export function buildSession(accountId: string, profile: Profile): Session {
+  const fixedName = getRosterName(accountId);
   return {
     accountId,
+    name: fixedName,
+    avatarUrl: profile.avatarUrl,
     ...(accountId === ADMIN_ACCOUNT_ID ? { admin: true } : {}),
-    ...profile,
   };
 }
 

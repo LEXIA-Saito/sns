@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { X, ImagePlus, Film, Loader2 } from "lucide-react";
 import { createPost } from "@/lib/posts";
 import type { Session } from "@/lib/session";
@@ -23,8 +23,6 @@ interface PostComposerProps {
 }
 
 const MAX_FILE_MB = 50;
-/** 縁のバーの角丸 */
-const FRAME_RADIUS = 16;
 
 export default function PostComposer({
   open,
@@ -39,22 +37,6 @@ export default function PostComposer({
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  // 縁のバーを引くために、ポップアップの大きさを測る
-  const [box, setBox] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    const element = frameRef.current;
-    if (!open || !element) return;
-
-    const update = () =>
-      setBox({ width: element.offsetWidth, height: element.offsetHeight });
-    update();
-
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [open, preview]);
 
   if (!open) return null;
 
@@ -64,14 +46,6 @@ export default function PostComposer({
   const after = levelFromXp(xp + gain);
   const willLevelUp = after.level > current.level;
   const tier = tierFromLevel(current.level);
-
-  const { width, height } = box;
-  // 枠の内側に収まる太さにする（外側は角丸で切れるため）
-  const inset = 2.5;
-  const straight = 2 * (width - 2 * FRAME_RADIUS) + 2 * (height - 2 * FRAME_RADIUS);
-  const perimeter = Math.max(0, straight + 2 * Math.PI * FRAME_RADIUS);
-  const filled = perimeter * current.progress;
-  const previewFilled = perimeter * (willLevelUp ? 1 : after.progress);
 
   const handleFile = (f: File | null) => {
     if (!f) return;
@@ -129,56 +103,7 @@ export default function PostComposer({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-overlay/40 p-0 sm:items-center sm:p-4">
-      <div
-        ref={frameRef}
-        className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl"
-      >
-        {/* 経験値バー（ポップアップの縁） */}
-        {width > 0 && (
-          <svg
-            className="pointer-events-none absolute inset-0 z-20"
-            width={width}
-            height={height}
-            aria-hidden
-          >
-            <rect
-              x={inset}
-              y={inset}
-              width={Math.max(0, width - inset * 2)}
-              height={Math.max(0, height - inset * 2)}
-              rx={FRAME_RADIUS}
-              fill="none"
-              stroke="rgb(var(--ink-200))"
-              strokeWidth="5"
-            />
-            <rect
-              x={inset}
-              y={inset}
-              width={Math.max(0, width - inset * 2)}
-              height={Math.max(0, height - inset * 2)}
-              rx={FRAME_RADIUS}
-              fill="none"
-              stroke="rgb(var(--accent) / 0.35)"
-              strokeWidth="5"
-              strokeDasharray={`${previewFilled} ${perimeter}`}
-              strokeLinecap="round"
-            />
-            <rect
-              x={inset}
-              y={inset}
-              width={Math.max(0, width - inset * 2)}
-              height={Math.max(0, height - inset * 2)}
-              rx={FRAME_RADIUS}
-              fill="none"
-              stroke="rgb(var(--accent))"
-              strokeWidth="5"
-              strokeDasharray={`${filled} ${perimeter}`}
-              strokeLinecap="round"
-              style={{ transition: "stroke-dasharray 0.4s ease-out" }}
-            />
-          </svg>
-        )}
-
+      <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl">
         {/* ヘッダー */}
         <div className="flex items-center justify-between border-b border-ink-100 px-4 py-3">
           <h2 className="text-base font-semibold text-ink-900">投稿する</h2>
@@ -192,31 +117,79 @@ export default function PostComposer({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
-          {/* プロフィールと現在のレベル */}
-          <div className="flex items-center justify-between rounded-lg border border-ink-200 bg-ink-50 p-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10">
-                <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="md" />
+          {/* プロフィールと現在のレベル・横線プログレスバー */}
+          <div className="rounded-lg border border-ink-200 bg-ink-50 p-3 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10">
+                  <Avatar name={session.name || "?"} avatarUrl={session.avatarUrl} size="md" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-ink-900">
+                    {session.name || "名前未設定"}
+                  </p>
+                  <p className="flex items-center gap-1 text-xs text-ink-500">
+                    <LevelIcon rank={tier.rank} size={12} />
+                    レベル {current.level}
+                    <span className="text-ink-400">
+                      ・次まで あと {current.remaining}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-ink-900">
-                  {session.name || "名前未設定"}
-                </p>
-                <p className="flex items-center gap-1 text-xs text-ink-500">
-                  <LevelIcon rank={tier.rank} size={12} />
-                  レベル {current.level}
-                  <span className="text-ink-400">
-                    ・次まで あと {current.remaining}
-                  </span>
-                </p>
+              <button
+                onClick={onProfileEdit}
+                className="rounded-md border border-ink-200 bg-surface px-2.5 py-1 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
+              >
+                画像変更
+              </button>
+            </div>
+
+            {/* 横線プログレスバー（アクセシブル対応） */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="font-medium text-ink-500">
+                  Lv.{current.level} 進捗
+                </span>
+                <span className="text-ink-600 font-medium">
+                  {Math.round(current.progress * 100)}%
+                  {willLevelUp ? (
+                    <span className="ml-1.5 font-semibold text-accent">
+                      → Lv.{after.level} UP!
+                    </span>
+                  ) : (
+                    after.progress > current.progress && (
+                      <span className="ml-1.5 font-medium text-accent">
+                        → {Math.round(after.progress * 100)}%
+                      </span>
+                    )
+                  )}
+                </span>
+              </div>
+              <div
+                role="progressbar"
+                aria-valuenow={Math.round(current.progress * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`レベル${current.level}の経験値進捗`}
+                className="relative h-2 w-full overflow-hidden rounded-full bg-ink-200"
+              >
+                {/* 投稿後見込みプレビューバー */}
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-accent/40 transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, (willLevelUp ? 1 : after.progress) * 100))}%`,
+                  }}
+                />
+                {/* 現在の進捗バー */}
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, current.progress * 100))}%`,
+                  }}
+                />
               </div>
             </div>
-            <button
-              onClick={onProfileEdit}
-              className="rounded-md border border-ink-200 bg-surface px-3 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
-            >
-              変更
-            </button>
           </div>
 
           {/* テキスト */}

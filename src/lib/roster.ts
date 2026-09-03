@@ -89,9 +89,14 @@ export const ACCOUNT_ROSTER: Record<string, string> = {
   "26-082": "米津　憲明",
   "26-083": "若杉　美里",
   "26-084": "和田　翔",
-  "26-085": "",
+  "26-085": "予備アカウント",
 };
 
 export function getRosterName(accountId: string): string {
-  return ACCOUNT_ROSTER[accountId] ?? "";
+  const trimmed = (accountId ?? "").trim();
+  if (ACCOUNT_ROSTER[trimmed]) {
+    return ACCOUNT_ROSTER[trimmed];
+  }
+  if (!trimmed) return "ゲスト";
+  return `アカウント ${trimmed}`;
 }

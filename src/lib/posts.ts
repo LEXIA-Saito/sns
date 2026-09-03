@@ -17,6 +17,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { db, storage } from "./firebase";
+import { getRosterName } from "./roster";
 import type { Media, Post, Comment } from "./types";
 
 const POSTS_PATH = "posts";
@@ -150,10 +151,12 @@ export async function createPost(input: CreatePostInput): Promise<void> {
     media = await uploadMedia(input.file, input.accountId, input.onProgress);
   }
 
+  const fixedName = input.accountId ? getRosterName(input.accountId) : input.name.trim();
+
   const newRef = push(ref(db, POSTS_PATH));
   await set(newRef, {
     accountId: input.accountId,
-    name: input.name.trim(),
+    name: fixedName,
     ...(input.avatarUrl ? { avatarUrl: input.avatarUrl } : {}),
     text: input.text.trim(),
     media,
@@ -196,10 +199,11 @@ export async function addComment(
   text: string,
   avatarUrl?: string
 ): Promise<void> {
+  const fixedName = accountId ? getRosterName(accountId) : name.trim();
   const newRef = push(ref(db, `${POSTS_PATH}/${postId}/comments`));
   await set(newRef, {
     accountId,
-    name: name.trim(),
+    name: fixedName,
     ...(avatarUrl ? { avatarUrl } : {}),
     text: text.trim(),
     createdAt: serverTimestamp(),
