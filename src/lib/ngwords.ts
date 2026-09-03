@@ -1,8 +1,14 @@
 /**
- * 投稿・コメントの言葉づかいの事前チェック。
+ * 投稿の言葉づかいの事前チェック。
  *
  * 例会当日は投稿が会場のスクリーンに投影されるため、送信前に止める。
  * 「block」は送信させない。「warn」は確認のうえ本人の判断で送信できる。
+ *
+ * すり抜け対策として、判定の前に次をならす。
+ *   ・全角/半角、大文字/小文字、カタカナ/ひらがな
+ *   ・空白、記号、中黒、伸ばし棒（「ち・ん・こ」「ちーんこ」）
+ *   ・当て字によく使う漢字の読み（「珍子」「セック巣」）
+ *   ・伏せ字（「痴●」「ま○こ」）は1文字ぶんの穴として扱う
  *
  * ※ このファイルには判定用の語をそのまま並べている。性質上そうせざるを得ないが、
  *   ブラウザーへ配信されるため、閲覧できる前提で扱うこと。
@@ -17,9 +23,14 @@ export interface NgCheckResult {
   count: number;
 }
 
+/** 伏せ字に使われる文字。1文字ぶんの穴として扱う */
+const MASK_CHARS = "●○◯〇◎■□▪▫★☆▲△▼▽×✕✖✗*＊_＿";
+/** 穴を表す内部記号（通常の入力には現れない文字） */
+const MASK = "\u0001";
+
 /**
  * 誤検知を防ぐため、判定の前に取り除く語。
- * 例：「ばかり」を「ばか」と誤って判定しないようにする。
+ * 例：「ばかり」を「ばか」と、「analysis」を「anal」と判定しないようにする。
  */
 const ALLOW_PHRASES = [
   "ばかり",
@@ -29,27 +40,74 @@ const ALLOW_PHRASES = [
   "ちんちんの",
   "いっぱい",
   "しねば", // 「〜しねばならない」
+  "音痴",
+  "愚痴",
+  "ホモサピエンス",
+  "バイブス",
+  "バイブコーディング",
+  "バイブレーション",
+  "analysis",
+  "analog",
+  "analytics",
+  "analyze",
+  "canal",
+  "banal",
+  "grape",
+  "drape",
+  "scrape",
 ];
 
-/** 送信させない語（性的表現・差別語・強い攻撃） */
+/** 当て字対策。判定の前に読みへ置き換える */
+const HOMOPHONES: Array<[string, string]> = [
+  ["珍", "ちん"],
+  ["巣", "す"],
+  ["子", "こ"],
+  ["個", "こ"],
+  ["満", "まん"],
+  ["万", "まん"],
+  ["穴", "あな"],
+  ["尻", "しり"],
+  ["汁", "しる"],
+  ["舐", "なめ"],
+];
+
+/** 送信させない語 */
 const BLOCK_WORDS = [
-  // 性的表現
-  "ちんこ", "ちんぽ", "まんこ", "せっくす", "sex", "ふぇら", "おなにー", "onanie",
-  "射精", "精液", "勃起", "陰茎", "陰部", "性器", "性交", "自慰", "中出し",
-  "れいぷ", "rape", "強姦", "痴漢", "淫乱", "セフレ", "せふれ", "やりまん",
-  "童貞", "風俗嬢", "でりへる", "そーぷらんど", "エッチしよ", "えっちしよ",
+  // 性的表現（部位）
+  "ちんこ", "ちんぽ", "ちんぽこ", "まんこ", "おめこ", "ぺにす", "penis",
+  "ばぎな", "vagina", "陰茎", "陰核", "陰部", "性器", "亀頭", "膣",
+  "きんたま", "金玉", "睾丸", "乳首", "ぱいずり", "陰毛", "まんげ",
+  "しりあな", "けつあな", "あなる", "anal", "肛門",
+  "おっぱい", "おっぱお", "おしり", "巨乳", "貧乳",
+  // 性的表現（行為）
+  "せっくす", "sex", "性交", "性行為", "挿入", "中出し", "なまはめ", "はめどり",
+  "ふぇら", "fellatio", "くんに", "cunnilingus", "おーらる",
+  "おなにー", "onani", "masturbat", "自慰", "しこしこ", "射精", "精液", "勃起",
+  // 性的表現（呼称・状況）
+  "わいせつ", "猥褻", "猥せつ", "卑猥", "ひわい", "淫乱", "淫行", "淫語",
+  "痴女", "痴漢", "盗撮", "露出狂", "変質者",
+  "れいぷ", "rape", "強姦", "輪姦", "近親相姦", "ぽるの", "porn",
+  "せふれ", "やりまん", "童貞", "風俗嬢", "そーぷらんど", "でりへる",
+  "援助交際", "えんこう", "売春", "買春", "av女優",
+  "おなほ", "でんま", "ばいぶ", "ばいぶれーた", "えねまぐら", "ぶるせら",
+  // 排泄
+  "うんこ", "うんち", "おしっこ", "小便", "大便", "糞尿",
   // 差別語
   "きちがい", "気違い", "基地外", "がいじ", "池沼", "白痴", "知恵遅れ",
-  "めくら", "つんぼ", "かたわ", "びっこ", "部落民", "えたひにん", "ちょん公", "支那人",
-  // 強い攻撃・脅し
-  "死ね", "しね", "殺す", "ころす", "殺害", "死んで詫び", "自殺しろ",
+  "めくら", "つんぼ", "かたわ", "びっこ", "部落民", "えたひにん",
+  "ちょん公", "支那人", "土人", "乞食", "nigger",
+  "ほも", "おかま", "れず",
+  // 攻撃・脅し
+  "死ね", "しね", "殺す", "ころす", "殺害", "自殺しろ", "首吊り", "死んで詫び",
+  // 薬物
+  "覚醒剤", "覚せい剤", "大麻", "こかいん", "へろいん", "しゃぶ中", "麻薬", "違法薬物",
 ];
 
 /** 確認のうえ送信できる語（軽い悪態） */
 const WARN_WORDS = [
-  "ばか", "馬鹿", "あほ", "阿呆", "くそ", "クソ", "うざい", "うぜー", "きもい", "キモい",
-  "まぬけ", "間抜け", "無能", "ぶす", "でぶ", "はげ", "ハゲ", "だまれ", "黙れ",
-  "ちんちん", "おっぱい", "えろ", "エロ", "変態", "ヌード", "ぬーど",
+  "ばか", "馬鹿", "あほ", "阿呆", "くそ", "うざい", "うぜー", "きもい", "きしょい",
+  "まぬけ", "間抜け", "無能", "ぶす", "でぶ", "はげ", "だまれ", "黙れ",
+  "ちんちん", "えろ", "えっち", "変態", "すけべ", "ぬーど", "いやらしい", "しばく",
 ];
 
 /** カタカナをひらがなへ */
@@ -59,30 +117,77 @@ function kataToHira(value: string): string {
   );
 }
 
-/**
- * 表記ゆれと伏せ字をならす。
- * 全角半角・大文字小文字・カタカナ・記号・空白・伸ばし棒を取り除いて比較する。
- */
+/** 表記ゆれをならす（照合用。伏せ字は残さない） */
 export function normalizeForCheck(text: string): string {
-  const normalized = text.normalize("NFKC").toLowerCase();
-  return kataToHira(normalized)
-    .replace(/[\s　]/g, "")
-    .replace(/[ー〜~・.,、。!?！？"'`^*_\-–—+=/\\|()[\]{}<>@#$%&:;]/g, "");
+  return normalizeInternal(text).split(MASK).join("");
+}
+
+/** 判定の前処理。伏せ字だけは穴として残す */
+function normalizeInternal(text: string): string {
+  let value = kataToHira(text.normalize("NFKC").toLowerCase());
+  for (const [kanji, reading] of HOMOPHONES) {
+    value = value.split(kanji).join(reading);
+  }
+  let result = "";
+  for (const ch of value) {
+    if (MASK_CHARS.includes(ch)) {
+      result += MASK;
+      continue;
+    }
+    if (/[\s　ー〜~・.,、。!?！？"'`^+#@:;$%&|/\\()[\]{}<>-]/.test(ch)) {
+      continue;
+    }
+    result += ch;
+  }
+  return result;
 }
 
 /** 判定に使う文字列（誤検知しやすい語をあらかじめ除去） */
 function prepare(text: string): string {
-  let prepared = normalizeForCheck(text);
+  let prepared = normalizeInternal(text);
   for (const phrase of ALLOW_PHRASES) {
     prepared = prepared.split(normalizeForCheck(phrase)).join("");
   }
   return prepared;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const KANJI = /[一-鿿]/;
+
+/**
+ * 語が含まれるか。伏せ字（穴）は任意の1文字として扱う。
+ * ただし穴だらけの文字列がたまたま一致しないよう、
+ *   ・穴は語の半分まで
+ *   ・2文字の語は見えている側が漢字のときだけ（「痴●」は拾い、「★か」は拾わない）
+ * とする。
+ */
+function includesWord(prepared: string, word: string): boolean {
+  if (prepared.includes(word)) return true;
+  if (!prepared.includes(MASK)) return false;
+  if (word.length < 2) return false;
+  if (word.length === 2 && !KANJI.test(word)) return false;
+
+  const pattern = new RegExp(
+    Array.from(word).map((c) => `[${escapeRegExp(c)}${MASK}]`).join("")
+  );
+  const matched = prepared.match(pattern);
+  if (!matched) return false;
+
+  const holes = Array.from(matched[0]).filter((c) => c === MASK).length;
+  if (holes === 0 || holes * 2 > word.length) return holes === 0;
+  if (word.length === 2 && !KANJI.test(matched[0].split(MASK).join(""))) {
+    return false;
+  }
+  return true;
+}
+
 function countMatches(prepared: string, words: string[]): number {
   let count = 0;
   for (const word of words) {
-    if (prepared.includes(normalizeForCheck(word))) count += 1;
+    if (includesWord(prepared, normalizeForCheck(word))) count += 1;
   }
   return count;
 }
