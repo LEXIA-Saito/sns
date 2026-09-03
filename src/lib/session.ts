@@ -1,6 +1,7 @@
 "use client";
 
 import { ADMIN_ACCOUNT_ID } from "./auth";
+import { getRosterName } from "./roster";
 
 /**
  * ログイン状態そのものは Firebase Auth が持つ。
@@ -29,16 +30,24 @@ function keyFor(accountId: string) {
 
 export function loadProfile(accountId: string): Profile {
   if (typeof window === "undefined") return { name: "" };
+  const rosterName = getRosterName(accountId);
   try {
     const raw = localStorage.getItem(keyFor(accountId));
     if (raw) {
       const parsed = JSON.parse(raw) as Profile;
-      return { name: parsed.name ?? "", avatarUrl: parsed.avatarUrl };
+      return {
+        name: parsed.name?.trim() ? parsed.name : rosterName,
+        avatarUrl: parsed.avatarUrl,
+      };
     }
   } catch {
     // 壊れていたら初期値に戻す
   }
-  return readLegacyProfile();
+  const legacy = readLegacyProfile();
+  return {
+    name: legacy.name?.trim() ? legacy.name : rosterName,
+    avatarUrl: legacy.avatarUrl,
+  };
 }
 
 export function saveProfile(accountId: string, profile: Profile): void {

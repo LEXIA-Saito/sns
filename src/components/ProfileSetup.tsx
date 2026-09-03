@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { X, Camera, Loader2, LogOut } from "lucide-react";
 import { uploadAvatarImage } from "@/lib/posts";
 import Avatar from "./Avatar";
@@ -31,6 +31,13 @@ export default function ProfileSetup({
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(defaultAvatarUrl);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setName(defaultName);
+      setAvatarUrl(defaultAvatarUrl);
+    }
+  }, [defaultName, defaultAvatarUrl, open]);
 
   if (!open) return null;
 
