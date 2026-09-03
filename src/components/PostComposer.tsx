@@ -162,9 +162,6 @@ export default function PostComposer({
                     <p className="flex items-center gap-1 text-xs text-ink-500">
                       <LevelIcon rank={tier.rank} size={12} />
                       レベル {current.level}
-                      <span className="text-ink-400">
-                        ・次まで あと {current.remaining}
-                      </span>
                     </p>
                   )}
                 </div>
@@ -239,13 +236,6 @@ export default function PostComposer({
                 </p>
               </div>
             </div>
-          ) : session.admin ? (
-            <div className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/60 flex items-center justify-between">
-              <span>※ 運営アカウントのため受付状態に関わらず投稿可能です</span>
-              {settings?.postDeadline && (
-                <span className="text-white/40">締切: {formatJstDateTime(settings.postDeadline)}</span>
-              )}
-            </div>
           ) : settings?.postDeadline ? (
             <div className="rounded-md border border-ink-200 bg-ink-50 px-3 py-1.5 text-[11px] text-ink-500 flex items-center gap-1.5">
               <Clock size={12} className="text-ink-400" />
@@ -272,9 +262,6 @@ export default function PostComposer({
                 </li>
               ))}
             </ul>
-            <p className="pt-1 text-[11px] text-ink-400 border-t border-ink-200/60 leading-normal">
-              ※ 写真付き投稿が推奨されていますが、テキストのみの投稿（+10 XP）も可能です。
-            </p>
           </div>
 
           {/* テキスト */}
