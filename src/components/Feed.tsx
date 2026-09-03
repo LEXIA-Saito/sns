@@ -19,7 +19,7 @@ import {
   recordAccountLogin,
   subscribeAvatarReset,
 } from "@/lib/posts";
-import { filterVisiblePosts } from "@/lib/moderation";
+import { filterTimelinePosts, filterVisiblePosts } from "@/lib/moderation";
 import { canCreatePost } from "@/lib/settings";
 import { useNow } from "@/lib/useNow";
 import {
@@ -189,10 +189,13 @@ export default function Feed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseConfigured, demo, session?.accountId]);
 
-  // 一般フィードでは非表示投稿を除外
+  // 一般フィードでは非表示投稿を除外し、
+  // タイムラインに流すのはアカデミーメンバーの投稿（と自分の投稿）だけにする
   const visiblePosts = useMemo(() => {
-    return filterVisiblePosts(posts);
-  }, [posts]);
+    const shown = filterVisiblePosts(posts);
+    if (!session) return shown;
+    return filterTimelinePosts(shown, session.accountId, session.admin === true);
+  }, [posts, session]);
 
   // 新規投稿の受付状態判定
   const postStatus = useMemo(() => {

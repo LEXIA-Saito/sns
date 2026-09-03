@@ -100,3 +100,20 @@ export function getRosterName(accountId: string): string {
   if (!trimmed) return "ゲスト";
   return `アカウント ${trimmed}`;
 }
+
+/**
+ * 26期アカデミーメンバーのカード番号。
+ *
+ * タイムラインに流れるのはここに載っている人の投稿だけ。
+ * ＬＯＭメンバーの投稿は本人にしか見えない（運営は全部見える）。
+ *
+ * ※ 空のあいだは全員の投稿が流れる（区分ができるまで従来どおり）。
+ */
+export const ACADEMY_ACCOUNT_IDS: string[] = [];
+
+/** アカデミーメンバーか。名簿が未設定のうちは全員を対象とする */
+export function isAcademyMember(accountId?: string): boolean {
+  if (ACADEMY_ACCOUNT_IDS.length === 0) return true;
+  if (!accountId) return false;
+  return ACADEMY_ACCOUNT_IDS.includes(accountId.trim());
+}

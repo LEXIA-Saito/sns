@@ -19,6 +19,7 @@ import LevelBadge from "@/components/LevelBadge";
 import type { Post } from "@/lib/types";
 import { subscribePosts } from "@/lib/posts";
 import { filterVisiblePosts } from "@/lib/moderation";
+import { isAcademyMember } from "@/lib/roster";
 import { xpByAccount } from "@/lib/level";
 
 export default function ProjectorPage() {
@@ -41,9 +42,9 @@ export default function ProjectorPage() {
     return () => unsub();
   }, []);
 
-  // 公開投稿のみ
+  // 公開投稿のうち、会場に映すのはアカデミーメンバーの投稿だけ
   const visiblePosts = useMemo(() => {
-    return filterVisiblePosts(posts);
+    return filterVisiblePosts(posts).filter((post) => isAcademyMember(post.accountId));
   }, [posts]);
 
   // アカウント経験値マップ

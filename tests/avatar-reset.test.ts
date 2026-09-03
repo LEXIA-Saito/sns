@@ -39,3 +39,35 @@ test("初期化のあとに本人が入れ直したアイコンは消さない",
 test("初期化されていなければ消さない", () => {
   assert.equal(shouldClearLocalAvatar(1000, undefined), false);
 });
+
+// --- タイムラインの絞り込み -------------------------------------------
+import { filterTimelinePosts } from "../src/lib/moderation";
+import { ACADEMY_ACCOUNT_IDS, isAcademyMember } from "../src/lib/roster";
+
+const timeline: Post[] = [
+  { id: "a1", accountId: "26-001", name: "アカデミー", text: "アカデミーの投稿", createdAt: 1 },
+  { id: "l1", accountId: "26-050", name: "ＬＯＭ", text: "ＬＯＭの投稿", createdAt: 2 },
+  { id: "l2", accountId: "26-060", name: "ＬＯＭ2", text: "別のＬＯＭの投稿", createdAt: 3 },
+];
+
+test("名簿が未設定のうちは全員の投稿が流れる（従来どおり）", () => {
+  assert.equal(ACADEMY_ACCOUNT_IDS.length, 0);
+  assert.equal(isAcademyMember("26-050"), true);
+  assert.equal(filterTimelinePosts(timeline, "26-050").length, 3);
+});
+
+test("名簿があるとアカデミーの投稿と自分の投稿だけになる", () => {
+  ACADEMY_ACCOUNT_IDS.push("26-001");
+  try {
+    const forLom = filterTimelinePosts(timeline, "26-050");
+    assert.deepEqual(forLom.map((p) => p.id), ["a1", "l1"]);
+
+    const forAcademy = filterTimelinePosts(timeline, "26-001");
+    assert.deepEqual(forAcademy.map((p) => p.id), ["a1"]);
+
+    // 運営は全部見える
+    assert.equal(filterTimelinePosts(timeline, "26-000", true).length, 3);
+  } finally {
+    ACADEMY_ACCOUNT_IDS.length = 0;
+  }
+});
