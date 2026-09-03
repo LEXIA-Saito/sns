@@ -223,7 +223,7 @@ export default function Feed() {
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/logo_26.png"
+              src="/logo_26.svg"
               alt="26アカデミー ロゴ"
               className="app-logo h-10 w-10 rounded-md object-contain"
             />

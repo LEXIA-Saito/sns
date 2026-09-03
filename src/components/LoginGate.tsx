@@ -72,7 +72,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
         <div className="flex flex-col items-center text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/logo_26.png"
+            src="/logo_26.svg"
             alt="26アカデミー ロゴ"
             className="app-logo h-20 w-20 object-contain"
           />
