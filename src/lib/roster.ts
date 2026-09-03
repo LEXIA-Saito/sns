@@ -104,16 +104,21 @@ export function getRosterName(accountId: string): string {
 /**
  * 26期アカデミーメンバーのカード番号。
  *
- * タイムラインに流れるのはここに載っている人の投稿だけ。
- * ＬＯＭメンバーの投稿は本人にしか見えない（運営は全部見える）。
+ * タイムラインに流れるのは、ここに載っている人と運営（26-000）の投稿だけ。
+ * ＬＯＭメンバーの投稿は本人にしか見えない。
  *
- * ※ 空のあいだは全員の投稿が流れる（区分ができるまで従来どおり）。
+ * ※ 空のあいだは全員の投稿が流れる（名簿が入るまで従来どおり）。
  */
 export const ACADEMY_ACCOUNT_IDS: string[] = [];
 
-/** アカデミーメンバーか。名簿が未設定のうちは全員を対象とする */
+/** 運営アカウント。運営の投稿は常にタイムラインへ流す */
+const ADMIN_ID = "26-000";
+
+/** タイムラインに流す投稿の書き手か。名簿が未設定のうちは全員を対象とする */
 export function isAcademyMember(accountId?: string): boolean {
+  const id = (accountId ?? "").trim();
+  if (id === ADMIN_ID) return true;
   if (ACADEMY_ACCOUNT_IDS.length === 0) return true;
-  if (!accountId) return false;
-  return ACADEMY_ACCOUNT_IDS.includes(accountId.trim());
+  if (!id) return false;
+  return ACADEMY_ACCOUNT_IDS.includes(id);
 }

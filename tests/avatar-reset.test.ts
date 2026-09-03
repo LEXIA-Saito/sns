@@ -71,3 +71,20 @@ test("名簿があるとアカデミーの投稿と自分の投稿だけにな�
     ACADEMY_ACCOUNT_IDS.length = 0;
   }
 });
+
+test("運営の投稿は名簿になくてもタイムラインに流れる", () => {
+  ACADEMY_ACCOUNT_IDS.push("26-001");
+  try {
+    const withAdmin: Post[] = [
+      ...timeline,
+      { id: "adm", accountId: "26-000", name: "運営", text: "運営からの連絡", createdAt: 9 },
+    ];
+    // ＬＯＭメンバーから見て、アカデミー・運営・自分の投稿が見える
+    assert.deepEqual(
+      filterTimelinePosts(withAdmin, "26-050").map((p) => p.id),
+      ["a1", "l1", "adm"]
+    );
+  } finally {
+    ACADEMY_ACCOUNT_IDS.length = 0;
+  }
+});
