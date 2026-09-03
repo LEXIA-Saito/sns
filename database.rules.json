@@ -21,6 +21,13 @@
         }
       }
     },
+    "avatarResets": {
+      ".read": "auth != null",
+      "$accountId": {
+        ".write": "auth != null && auth.uid === '26-000'",
+        ".validate": "newData.isNumber()"
+      }
+    },
     "likes": {
       ".read": "auth != null",
       "$postId": {
@@ -49,6 +56,7 @@
           ".validate": "newData.isString() && newData.val().length <= 2000"
         },
         "avatarUrl": {
+          ".write": "auth != null && auth.uid === '26-000'",
           ".validate": "newData.isString()"
         },
         "createdAt": {
@@ -105,6 +113,7 @@
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500"
             },
             "avatarUrl": {
+              ".write": "auth != null && auth.uid === '26-000'",
               ".validate": "newData.isString()"
             },
             "createdAt": {

@@ -18,6 +18,7 @@ import {
   subscribeSettings,
   subscribeLikes,
   recordAccountLogin,
+  subscribeAvatarReset,
 } from "@/lib/posts";
 import { filterVisiblePosts } from "@/lib/moderation";
 import { canCreatePost } from "@/lib/settings";
@@ -29,6 +30,7 @@ import {
   type Session,
 } from "@/lib/session";
 import { onAuthStateChanged, signOutCard } from "@/lib/auth";
+import { shouldClearLocalAvatar } from "@/lib/avatarReset";
 import { DEMO_BASE_XP, DEMO_SESSION, buildDemoPosts } from "@/lib/demo";
 import { xpByAccount } from "@/lib/level";
 import PostCard from "./PostCard";
@@ -93,6 +95,25 @@ export default function Feed() {
       unsubscribe();
     };
   }, []);
+
+  // 運営がアイコンを初期化したら、この端末に残っているぶんも消す
+  // （消さないと、次の投稿でまた同じアイコンが付いてしまう）
+  useEffect(() => {
+    if (!session || demo) return;
+    const accountId = session.accountId;
+    const unsubscribe = subscribeAvatarReset(accountId, (resetAt) => {
+      const profile = loadProfile(accountId);
+      if (!profile.avatarUrl) return;
+      if (!shouldClearLocalAvatar(profile.updatedAt, resetAt)) return;
+      saveProfile(accountId, { name: profile.name, avatarUrl: undefined });
+      setSession((prev) =>
+        prev && prev.accountId === accountId
+          ? { ...prev, avatarUrl: undefined }
+          : prev
+      );
+    });
+    return unsubscribe;
+  }, [session?.accountId, demo]);
 
   // 名前が未設定なら、プロフィール設定を必ず通す
   useEffect(() => {

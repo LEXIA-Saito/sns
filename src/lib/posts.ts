@@ -18,12 +18,14 @@ import {
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { getRosterName } from "./roster";
+import { buildAvatarResetUpdates } from "./avatarReset";
 import type { Media, Post, Comment, ModerationInfo, AppSettings, AccountActivity, LikesByPost } from "./types";
 
 const POSTS_PATH = "posts";
 const SETTINGS_PATH = "settings";
 const LIKES_PATH = "likes";
 const ACTIVITY_PATH = "accountActivity";
+const AVATAR_RESET_PATH = "avatarResets";
 
 /**
  * 投稿の購読(リアルタイム)。新しい順に並べたPost配列をコールバックで返す。
@@ -253,6 +255,36 @@ export async function setCommentModeration(
   await update(ref(db, `${POSTS_PATH}/${postId}/comments/${commentId}/moderation`), {
     ...moderation,
     moderatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * 運営が、あるカードのアイコンをデフォルト（名前のみ）へ戻す。
+ * 過去の投稿・コメントからも外し、本人の端末にも初期化を伝える。
+ * 戻り値は外した件数。
+ */
+export async function resetAccountAvatar(
+  posts: Post[],
+  accountId: string
+): Promise<number> {
+  const paths = buildAvatarResetUpdates(posts, accountId);
+  const updates: Record<string, unknown> = { ...paths };
+  updates[`${AVATAR_RESET_PATH}/${accountId}`] = serverTimestamp();
+  await update(ref(db), updates);
+  return Object.keys(paths).length;
+}
+
+/**
+ * 自分のカードが運営に初期化されたかの購読。
+ * 初期化された時刻（Unixミリ秒）を返す。
+ */
+export function subscribeAvatarReset(
+  accountId: string,
+  callback: (resetAt: number | undefined) => void
+): Unsubscribe {
+  return onValue(ref(db, `${AVATAR_RESET_PATH}/${accountId}`), (snapshot) => {
+    const value = snapshot.val();
+    callback(typeof value === "number" ? value : undefined);
   });
 }
 

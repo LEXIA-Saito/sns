@@ -38,6 +38,7 @@ import {
   setCommentModeration,
   deletePost,
   deleteComment,
+  resetAccountAvatar,
 } from "@/lib/posts";
 import {
   formatJstDateTime,
@@ -77,6 +78,9 @@ export default function AdminDashboardPage() {
   const [postFilter, setPostFilter] = useState<"all" | "hidden">("all");
   const [postSearch, setPostSearch] = useState("");
   const [expandedCommentsPostId, setExpandedCommentsPostId] = useState<string | null>(null);
+
+  // アイコン初期化の実行中カード
+  const [resettingAvatarId, setResettingAvatarId] = useState<string | null>(null);
 
   // アカウント進捗フィルタ状態
   const [progressFilter, setProgressFilter] = useState<"all" | "not_logged_in" | "not_posted" | "not_image" | "not_commented">("all");
@@ -307,6 +311,28 @@ export default function AdminDashboardPage() {
 
     return list;
   }, [rawProgressList, progressFilter, progressSearch, progressSort]);
+
+  // 不適切なアイコンを、名前のみの初期表示へ戻す。
+  // 過去の投稿・コメントに焼き付いたぶんも外し、本人の端末にも反映される
+  const handleResetAvatar = async (accountId: string, name: string) => {
+    if (
+      !confirm(
+        `${name}（${accountId}）のプロフィール画像をデフォルトに戻します。\n過去の投稿・コメントに表示されている画像も外れます。よろしいですか？`
+      )
+    ) {
+      return;
+    }
+    setResettingAvatarId(accountId);
+    try {
+      const count = await resetAccountAvatar(posts, accountId);
+      notify(`${name} のアイコンをデフォルトに戻しました（投稿・コメント ${count}件）`);
+    } catch (err) {
+      console.error(err);
+      notify("アイコンの初期化に失敗しました", "error");
+    } finally {
+      setResettingAvatarId(null);
+    }
+  };
 
   const handleDownloadCsv = () => {
     const csvString = generateProgressCsv(filteredProgressList);
@@ -985,6 +1011,7 @@ export default function AdminDashboardPage() {
                       <th className="px-3 py-2.5 text-center">写真投稿</th>
                       <th className="px-3 py-2.5 text-center">コメント数</th>
                       <th className="px-3 py-2.5">最終ログイン</th>
+                      <th className="px-3 py-2.5 text-center">アイコン</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ink-100">
@@ -1025,6 +1052,16 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="px-3 py-2 text-[11px] text-ink-500">
                           {item.lastLoginAt ? formatJstDateTime(item.lastLoginAt) : "未記録"}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => void handleResetAvatar(item.accountId, item.name)}
+                            disabled={resettingAvatarId === item.accountId}
+                            className="rounded-md border border-ink-200 px-2 py-1 text-[11px] font-semibold text-ink-600 transition hover:border-ink-400 hover:text-ink-900 disabled:opacity-50"
+                          >
+                            {resettingAvatarId === item.accountId ? "初期化中..." : "デフォルトに戻す"}
+                          </button>
                         </td>
                       </tr>
                     ))}

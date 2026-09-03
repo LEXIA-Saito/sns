@@ -15,6 +15,8 @@ const LEGACY_AVATAR_KEY = "academy26_avatar";
 export interface Profile {
   name: string;
   avatarUrl?: string;
+  /** この端末で最後に保存した時刻。運営による初期化と前後を比べるのに使う */
+  updatedAt?: number;
 }
 
 export interface Session extends Profile {
@@ -32,6 +34,7 @@ export function loadProfile(accountId: string): Profile {
   const fixedName = getRosterName(accountId);
   if (typeof window === "undefined") return { name: fixedName };
   let avatarUrl: string | undefined;
+  let updatedAt: number | undefined;
   let saved = false;
   try {
     const raw = localStorage.getItem(keyFor(accountId));
@@ -39,6 +42,7 @@ export function loadProfile(accountId: string): Profile {
       saved = true;
       const parsed = JSON.parse(raw) as Partial<Profile>;
       avatarUrl = parsed.avatarUrl;
+      updatedAt = parsed.updatedAt;
     }
   } catch {
     // 壊れていたら初期値に戻す
@@ -51,6 +55,7 @@ export function loadProfile(accountId: string): Profile {
   return {
     name: fixedName,
     avatarUrl,
+    updatedAt,
   };
 }
 
@@ -63,6 +68,7 @@ export function saveProfile(accountId: string, profile: Partial<Profile>): void 
       JSON.stringify({
         name: fixedName,
         avatarUrl: profile.avatarUrl,
+        updatedAt: Date.now(),
       })
     );
   } catch {
