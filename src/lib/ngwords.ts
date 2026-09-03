@@ -104,6 +104,12 @@ const HOMOPHONES: Array<[string, string]> = [
   ["乙", "おつ"], // 「パイ乙」対策
 ];
 
+/**
+ * 除外語より先に判定する語。
+ * 「犯罪を犯して」のように、除外語（罪を犯）を含みつつ止めたいもの。
+ */
+const PRIORITY_BLOCK_WORDS = ["犯罪を犯"];
+
 /** 送信させない語 */
 const BLOCK_WORDS = [
   // 性的表現（部位）
@@ -290,6 +296,11 @@ function countMatches(prepared: string, words: string[]): number {
  * 本文を判定する。block が1件でもあれば block を返す。
  */
 export function checkText(text: string): NgCheckResult {
+  // 除外語で守る前に、優先して止める語を見る
+  const raw = normalizeInternal(text);
+  const priority = countMatches(raw, PRIORITY_BLOCK_WORDS);
+  if (priority > 0) return { level: "block", count: priority };
+
   const prepared = prepare(text);
   if (!prepared) return { level: null, count: 0 };
 
