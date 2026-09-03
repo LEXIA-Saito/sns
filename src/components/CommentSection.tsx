@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { AlertCircle, Clock } from "lucide-react";
-import { PixelSend } from "./PixelIcon";
+import { PixelSend, PixelTrash } from "./PixelIcon";
 import type { Comment, AppSettings } from "@/lib/types";
 import type { Session } from "@/lib/session";
-import { addComment } from "@/lib/posts";
+import { addComment, deleteComment } from "@/lib/posts";
 import { checkText, NG_BLOCK_MESSAGE, NG_WARN_MESSAGE } from "@/lib/ngwords";
-import { filterVisibleComments } from "@/lib/moderation";
+import { canDeleteComment, filterVisibleComments } from "@/lib/moderation";
 import { canCreateComment, formatJstDateTime } from "@/lib/settings";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
@@ -29,6 +29,7 @@ export default function CommentSection({
 }: CommentSectionProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // 非表示コメントを除外
   const visibleComments = filterVisibleComments(comments);
@@ -67,6 +68,28 @@ export default function CommentSection({
     }
   };
 
+  // 自分のコメントだけ削除できる。運営用アカウントは全コメントを操作できる
+  const canDelete = (comment: Comment) =>
+    canDeleteComment(comment, session.accountId, session.admin === true);
+
+  const handleDelete = async (comment: Comment) => {
+    const msg =
+      session.admin && comment.accountId !== session.accountId
+        ? "【二段階確認】運営権限でこのコメントを完全に削除しますか？\n（復元できなくなります）"
+        : "【確認】このコメントを削除しますか？";
+    if (!confirm(msg)) return;
+
+    setDeletingId(comment.id);
+    try {
+      await deleteComment(postId, comment.id);
+    } catch (e) {
+      console.error(e);
+      alert("コメントの削除に失敗しました");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="border-t border-ink-100 bg-ink-50/50 px-4 py-3 space-y-3">
       {visibleComments.length > 0 && (
@@ -83,6 +106,17 @@ export default function CommentSection({
                   {formatRelativeTime(c.createdAt, now)}
                 </span>
               </div>
+              {canDelete(c) && (
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(c)}
+                  disabled={deletingId === c.id}
+                  className="shrink-0 self-start p-1 text-ink-300 transition hover:text-ink-700 disabled:opacity-40"
+                  aria-label="コメントを削除"
+                >
+                  <PixelTrash size={13} />
+                </button>
+              )}
             </li>
           ))}
         </ul>

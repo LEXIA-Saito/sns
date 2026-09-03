@@ -29,3 +29,16 @@ export function filterVisiblePosts(posts: Post[]): Post[] {
 export function filterVisibleComments(comments: Comment[]): Comment[] {
   return comments.filter(isCommentVisible);
 }
+
+/**
+ * コメントを削除できるか。
+ * 自分のコメントのみ。運営用アカウントは全コメントを操作できる。
+ */
+export function canDeleteComment(
+  comment: Comment,
+  accountId: string,
+  admin = false
+): boolean {
+  if (admin) return true;
+  return !!comment.accountId && comment.accountId === accountId;
+}
