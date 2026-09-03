@@ -124,6 +124,7 @@ test("投稿全体がその語だけのときに止める（普通の文では�
   assert.equal(checkText("グロ").level, "block");
   assert.equal(checkText("エグ").level, "block");
   assert.equal(checkText("ニガー").level, "block");
+  assert.equal(checkText("ホスト").level, "block");
   // 文章の一部として普通に使うぶんは止めない
   assert.equal(checkText("69人が参加しました").level, null);
   assert.equal(checkText("水着を買いに行きました").level, null);
@@ -134,6 +135,8 @@ test("投稿全体がその語だけのときに止める（普通の文では�
   assert.equal(checkText("エグゼクティブ向けの研修").level, null);
   assert.equal(checkText("苦い経験でした").level, null);
   assert.equal(checkText("人前で話すのが苦手です").level, null);
+  assert.equal(checkText("ホスト名を確認してください").level, null);
+  assert.equal(checkText("ホストファミリーにお世話になりました").level, null);
 });
 
 test("当て字（読みが同じ漢字）でもすり抜けない", () => {
@@ -223,6 +226,9 @@ test("隠語・倒語・盗撮まがいの投稿も送信させない", () => {
     "キャバ嬢",
     "ニガー",
     "クソジャップ",
+    "アメカス",
+    "黒人ニキ",
+    "ＯＬの黒ストッキング",
   ]) {
     assert.equal(checkText(s).level, "block", `見逃し: ${s}`);
   }
@@ -267,6 +273,8 @@ test("普通の意味で使う言い回しは止めない（擬音・悪態の�
     "乳房検診の案内が届いた",
     "支那そばを食べました",
     "爪を切ってから行きます",
+    "黒人の方と一緒に働きました",
+    "カスタマーサポートに連絡しました",
   ]) {
     assert.equal(checkText(s).level, null, `誤検知: ${s}`);
   }
