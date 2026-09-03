@@ -6,6 +6,7 @@ import { PixelSend } from "./PixelIcon";
 import type { Comment, AppSettings } from "@/lib/types";
 import type { Session } from "@/lib/session";
 import { addComment } from "@/lib/posts";
+import { checkText, NG_BLOCK_MESSAGE, NG_WARN_MESSAGE } from "@/lib/ngwords";
 import { filterVisibleComments } from "@/lib/moderation";
 import { canCreateComment, formatJstDateTime } from "@/lib/settings";
 import { formatRelativeTime } from "@/lib/utils";
@@ -40,6 +41,14 @@ export default function CommentSection({
     }
     const body = text.trim();
     if (!body) return;
+    const ng = checkText(body);
+    if (ng.level === "block") {
+      alert(NG_BLOCK_MESSAGE);
+      return;
+    }
+    if (ng.level === "warn" && !confirm(NG_WARN_MESSAGE)) {
+      return;
+    }
     setSending(true);
     try {
       await addComment(

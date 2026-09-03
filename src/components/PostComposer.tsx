@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Loader2, Clock, AlertCircle } from "lucide-react";
 import { PixelX, PixelCamera, PixelFilm, PixelSparkle } from "./PixelIcon";
 import { createPost } from "@/lib/posts";
+import { checkText, NG_BLOCK_MESSAGE, NG_WARN_MESSAGE } from "@/lib/ngwords";
 import type { Session } from "@/lib/session";
 import type { AppSettings } from "@/lib/types";
 import {
@@ -96,6 +97,15 @@ export default function PostComposer({
     }
     if (!text.trim() && !file) {
       alert("メッセージか、画像・動画を入力してください");
+      return;
+    }
+    // 会場のスクリーンに投影されるため、送信前に言葉づかいを確認する
+    const ng = checkText(text);
+    if (ng.level === "block") {
+      alert(NG_BLOCK_MESSAGE);
+      return;
+    }
+    if (ng.level === "warn" && !confirm(NG_WARN_MESSAGE)) {
       return;
     }
     setSubmitting(true);
