@@ -187,7 +187,7 @@ const BLOCK_WORDS = [
   "使用済み下着", "使用済み靴下", "しりのらいん", "巨しり", "美しり",
   "しりふぇち", "あしふぇち", "匂いふぇち", "下着どろ", "下着泥棒", "出歯亀",
   "やりたい", "やらせて", "はめたい", "抱かせて", "ほてる行こ", "犯りたい",
-  "ぱんっぱん", "ぱんぱん♡", "ぱんぱん♥", "むねがぱつぱつ", "むねぱつ",
+  "ぱんっぱん", "ぱんぱん♡", "むねがぱつぱつ", "むねぱつ",
   "痴感", "逆さ撮り", "逆さどり", "盗み撮り",
   "えろ", "しこい", "むらむら", "びんびん", "ぎんぎん",
   "むねの谷間", "野獣先輩", "ほもび", "のんけ",
@@ -276,15 +276,26 @@ export function normalizeForCheck(text: string): string {
   return normalizeInternal(text).split(MASK).join("");
 }
 
+/** 絵文字（異体字セレクタ・肌の色・結合子は先に落とす） */
+const EMOJI_MODIFIERS = /[\uFE0E\uFE0F\u200D\u{1F3FB}-\u{1F3FF}]/gu;
+const EMOJI = /\p{Extended_Pictographic}/u;
+const EMOJI_GLOBAL = /\p{Extended_Pictographic}/gu;
+
 /** 判定の前処理。伏せ字だけは穴として残す */
 function normalizeInternal(text: string): string {
-  let value = kataToHira(text.normalize("NFKC").toLowerCase());
+  // 絵文字は先に穴へ置き換える。
+  // 🈲 のような囲み文字はNFKCで漢字に化けるため、正規化より前に処理する
+  const masked = text
+    .replace(EMOJI_MODIFIERS, "")
+    .replace(EMOJI_GLOBAL, MASK);
+  let value = kataToHira(masked.normalize("NFKC").toLowerCase());
   for (const [kanji, reading] of HOMOPHONES) {
     value = value.split(kanji).join(reading);
   }
   let result = "";
   for (const ch of value) {
-    if (MASK_CHARS.includes(ch)) {
+    // 絵文字も伏せ字に使われるため、1文字ぶんの穴として扱う（「ち⭕こ」）
+    if (MASK_CHARS.includes(ch) || EMOJI.test(ch)) {
       result += MASK;
       continue;
     }
@@ -320,11 +331,20 @@ const CONFUSABLES: Array<[RegExp, string]> = [
 ];
 
 function withConfusables(prepared: string): string[] {
-  const swapped = CONFUSABLES.reduce(
-    (value, [pattern, replacement]) => value.replace(pattern, replacement),
-    prepared
-  );
-  return swapped === prepared ? [prepared] : [prepared, swapped];
+  const candidates = [prepared];
+
+  // 伏せ字・絵文字を挟んで分断した書き方（「し🈲ね」）も見る
+  const withoutMask = prepared.split(MASK).join("");
+  if (withoutMask && withoutMask !== prepared) candidates.push(withoutMask);
+
+  for (const base of [...candidates]) {
+    const swapped = CONFUSABLES.reduce(
+      (value, [pattern, replacement]) => value.replace(pattern, replacement),
+      base
+    );
+    if (swapped !== base) candidates.push(swapped);
+  }
+  return candidates;
 }
 
 function escapeRegExp(value: string): string {
