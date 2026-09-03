@@ -120,10 +120,13 @@ test("投稿全体がその語だけのときに止める（普通の文では�
   assert.equal(checkText("69").level, "block");
   assert.equal(checkText("水着").level, "block");
   assert.equal(checkText("ブラ").level, "block");
+  assert.equal(checkText("ＳＭ").level, "block");
   // 文章の一部として普通に使うぶんは止めない
   assert.equal(checkText("69人が参加しました").level, null);
   assert.equal(checkText("水着を買いに行きました").level, null);
   assert.equal(checkText("ブランドの話をしました").level, null);
+  assert.equal(checkText("SMSで連絡します").level, null);
+  assert.equal(checkText("smallな会場でした").level, null);
 });
 
 test("当て字（読みが同じ漢字）でもすり抜けない", () => {
@@ -188,6 +191,10 @@ test("隠語・倒語・盗撮まがいの投稿も送信させない", () => {
     "校内写生",
     "触手プレイin齋藤",
     "くっ殺",
+    "オークに敗北した女騎士",
+    "ゴブリンの巣穴で全滅",
+    "孕み袋",
+    "女王様のＳＭ拘束プレイ",
   ]) {
     assert.equal(checkText(s).level, "block", `見逃し: ${s}`);
   }
@@ -219,6 +226,9 @@ test("普通の意味で使う言い回しは止めない（擬音・悪態の�
     "事業に触手を伸ばしています",
     "地面の割れ目に注意",
     "ブラウザで開いてください",
+    "危険を孕んだ計画でした",
+    "犬の調教教室に通っています",
+    "奴隷制度の歴史を学んだ",
   ]) {
     assert.equal(checkText(s).level, null, `誤検知: ${s}`);
   }
