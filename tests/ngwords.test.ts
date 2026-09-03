@@ -115,11 +115,15 @@ test("表記ゆれ・伏せ字でもすり抜けない", () => {
   }
 });
 
-test("投稿全体が数字だけの隠語も止める", () => {
+test("投稿全体がその語だけのときに止める（普通の文では止めない）", () => {
   assert.equal(checkText("６９").level, "block");
   assert.equal(checkText("69").level, "block");
-  // 数字として普通に使うぶんは止めない
+  assert.equal(checkText("水着").level, "block");
+  assert.equal(checkText("ブラ").level, "block");
+  // 文章の一部として普通に使うぶんは止めない
   assert.equal(checkText("69人が参加しました").level, null);
+  assert.equal(checkText("水着を買いに行きました").level, null);
+  assert.equal(checkText("ブランドの話をしました").level, null);
 });
 
 test("当て字（読みが同じ漢字）でもすり抜けない", () => {
@@ -177,6 +181,13 @@ test("隠語・倒語・盗撮まがいの投稿も送信させない", () => {
     "xvideos",
     "MissAV",
     "児ポ法",
+    "イメージビデオ",
+    "ビキニ",
+    "齋藤君の割れ目",
+    "口内",
+    "校内写生",
+    "触手プレイin齋藤",
+    "くっ殺",
   ]) {
     assert.equal(checkText(s).level, "block", `見逃し: ${s}`);
   }
@@ -204,6 +215,10 @@ test("普通の意味で使う言い回しは止めない（擬音・悪態の�
     "ぶっかけご飯が旨い",
     "AV機器の設営をしました",
     "二次会の会場を押さえました",
+    "口内炎ができて痛い",
+    "事業に触手を伸ばしています",
+    "地面の割れ目に注意",
+    "ブラウザで開いてください",
   ]) {
     assert.equal(checkText(s).level, null, `誤検知: ${s}`);
   }
