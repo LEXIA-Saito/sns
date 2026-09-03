@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Loader2, MessageCircle, Trash2, X, Heart, EyeOff, Eye } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import {
+  PixelHeart,
+  PixelComment,
+  PixelTrash,
+  PixelEdit,
+  PixelEye,
+  PixelEyeOff,
+  PixelX,
+} from "./PixelIcon";
 import type { Post, AppSettings } from "@/lib/types";
 import type { Session } from "@/lib/session";
 import { commentsToArray, deletePost, updatePost, toggleLike, setPostModeration } from "@/lib/posts";
@@ -152,7 +161,7 @@ export default function PostCard({
       {showModerationBadge && isHidden && (
         <div className="flex items-center justify-between bg-amber-500/15 px-4 py-1.5 text-xs text-amber-300 border-b border-amber-500/30">
           <span className="flex items-center gap-1.5 font-semibold">
-            <EyeOff size={14} />
+            <PixelEyeOff size={14} />
             【非表示中】{post.moderation?.reason || "運営判断"}
           </span>
           <span className="text-[11px] text-amber-300/70">
@@ -195,9 +204,9 @@ export default function PostCard({
               {moderating ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : isHidden ? (
-                <Eye size={16} />
+                <PixelEye size={16} />
               ) : (
-                <EyeOff size={16} />
+                <PixelEyeOff size={16} />
               )}
             </button>
           )}
@@ -210,7 +219,7 @@ export default function PostCard({
                 className="rounded-full p-2 text-ink-400 transition hover:bg-ink-100 hover:text-ink-800 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="投稿を編集"
               >
-                <Edit3 size={16} />
+                <PixelEdit size={16} />
               </button>
               <button
                 type="button"
@@ -219,7 +228,7 @@ export default function PostCard({
                 className="rounded-full p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="投稿を削除"
               >
-                {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {deleting ? <Loader2 size={16} className="animate-spin" /> : <PixelTrash size={16} />}
               </button>
             </>
           )}
@@ -269,9 +278,10 @@ export default function PostCard({
           }`}
           aria-label={isLiked ? "いいねを取り消す" : "いいねする"}
         >
-          <Heart
-            size={17}
-            className={`transition-transform duration-150 ${isLiked ? "fill-red-500 scale-110" : ""}`}
+          <PixelHeart
+            size={16}
+            filled={isLiked}
+            className={`transition-transform duration-150 ${isLiked ? "scale-110" : ""}`}
           />
           <span>{likeCount > 0 ? likeCount : "いいね"}</span>
         </button>
@@ -282,7 +292,7 @@ export default function PostCard({
           onClick={() => setOpen((v) => !v)}
           className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-ink-500 transition hover:bg-ink-100 hover:text-ink-900"
         >
-          <MessageCircle size={17} />
+          <PixelComment size={16} />
           <span>
             {comments.length > 0 ? `コメント ${comments.length}` : "コメント"}
           </span>
@@ -311,7 +321,7 @@ export default function PostCard({
                 className="rounded-full p-1.5 text-ink-400 transition hover:bg-ink-100 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="閉じる"
               >
-                <X size={20} />
+                <PixelX size={18} />
               </button>
             </div>
 

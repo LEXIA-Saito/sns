@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { KeyRound, Loader2, LogIn, ScanLine } from "lucide-react";
+import { Loader2, ScanLine } from "lucide-react";
+import { PixelLogIn, PixelKey } from "./PixelIcon";
 import { signInWithCard, CardSignInError } from "@/lib/auth";
 
 interface LoginGateProps {
@@ -140,7 +141,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
               </>
             ) : (
               <>
-                <LogIn size={16} />
+                <PixelLogIn size={16} />
                 ログイン
               </>
             )}
@@ -157,7 +158,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
         </form>
 
         <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-ink-400">
-          <KeyRound size={12} />
+          <PixelKey size={12} />
           カードを紛失した場合は運営（アカデミー統括）まで
         </p>
       </div>

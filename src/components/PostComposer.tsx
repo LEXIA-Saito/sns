@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { X, ImagePlus, Film, Loader2, Sparkles, Clock, AlertCircle } from "lucide-react";
+import { Loader2, Clock, AlertCircle } from "lucide-react";
+import { PixelX, PixelCamera, PixelFilm, PixelSparkle } from "./PixelIcon";
 import { createPost } from "@/lib/posts";
 import type { Session } from "@/lib/session";
 import type { AppSettings } from "@/lib/types";
@@ -129,7 +130,7 @@ export default function PostComposer({
             className="rounded-full p-1.5 text-ink-400 transition hover:bg-ink-100 hover:text-ink-900"
             aria-label="閉じる"
           >
-            <X size={20} />
+            <PixelX size={18} />
           </button>
         </div>
 
@@ -240,7 +241,7 @@ export default function PostComposer({
           <div className="rounded-lg border border-ink-200 bg-ink-50/50 p-3 space-y-2">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-xs font-semibold text-ink-900">
-                <Sparkles size={13} className="text-accent" />
+                <PixelSparkle size={13} className="text-accent" />
                 投稿のテーマ・ガイド
               </span>
               <span className="text-[11px] font-medium text-accent">
@@ -288,7 +289,7 @@ export default function PostComposer({
                 className="absolute right-2 top-2 rounded-full bg-media/70 p-1.5 text-white transition hover:bg-media"
                 aria-label="メディアを削除"
               >
-                <X size={16} />
+                <PixelX size={16} />
               </button>
             </div>
           )}
@@ -300,9 +301,9 @@ export default function PostComposer({
               onClick={() => fileInputRef.current?.click()}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-ink-300 px-3 py-3 text-sm text-ink-500 transition hover:border-accent hover:text-ink-800"
             >
-              <ImagePlus size={18} />
+              <PixelCamera size={18} />
               画像
-              <Film size={18} className="ml-1" />
+              <PixelFilm size={18} className="ml-1" />
               動画を追加
             </button>
           )}

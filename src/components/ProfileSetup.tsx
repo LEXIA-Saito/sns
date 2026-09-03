@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { X, Camera, Loader2, LogOut } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { PixelX, PixelCamera, PixelLogOut } from "./PixelIcon";
 import { uploadAvatarImage } from "@/lib/posts";
 import Avatar from "./Avatar";
 
@@ -86,7 +87,7 @@ export default function ProfileSetup({
               className="rounded-full p-1.5 text-ink-400 transition hover:bg-ink-100 hover:text-ink-900"
               aria-label="閉じる"
             >
-              <X size={20} />
+              <PixelX size={18} />
             </button>
           )}
         </div>
@@ -109,7 +110,7 @@ export default function ProfileSetup({
                 {isUploading ? (
                   <Loader2 size={24} className="animate-spin text-white" />
                 ) : (
-                  <Camera size={24} className="text-white" />
+                  <PixelCamera size={24} className="text-white" />
                 )}
               </div>
             </div>
@@ -147,7 +148,7 @@ export default function ProfileSetup({
             onClick={handleLogout}
             className="mt-3 flex w-full items-center justify-center gap-1.5 text-xs font-medium text-ink-400 transition hover:text-ink-700"
           >
-            <LogOut size={14} />
+            <PixelLogOut size={14} />
             ログアウト
           </button>
         </div>

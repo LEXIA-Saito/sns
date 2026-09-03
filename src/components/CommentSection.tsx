@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Send, AlertCircle, Clock } from "lucide-react";
+import { AlertCircle, Clock } from "lucide-react";
+import { PixelSend } from "./PixelIcon";
 import type { Comment, AppSettings } from "@/lib/types";
 import type { Session } from "@/lib/session";
 import { addComment } from "@/lib/posts";
@@ -119,7 +120,7 @@ export default function CommentSection({
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-accent text-accent-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="コメントを送信"
         >
-          <Send size={16} />
+          <PixelSend size={16} />
         </button>
       </div>
     </div>

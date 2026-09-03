@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
-  PenSquare,
-  MessageSquareText,
-  Database,
-  Loader2,
-  QrCode,
-  X,
-  Shield,
-  Tv,
-} from "lucide-react";
+  PixelPen,
+  PixelComment,
+  PixelDatabase,
+  PixelQrCode,
+  PixelX,
+  PixelShield,
+  PixelTv,
+} from "./PixelIcon";
 import type { Post, AppSettings, LikesByPost } from "@/lib/types";
 import {
   subscribePosts,
@@ -235,7 +235,7 @@ export default function Feed() {
                   title="管理画面（受付管理・モデレーション・進捗）"
                   aria-label="管理画面"
                 >
-                  <Shield size={14} className="text-accent" />
+                  <PixelShield size={14} className="text-accent" />
                   <span className="hidden sm:inline">管理</span>
                 </Link>
                 <Link
@@ -244,7 +244,7 @@ export default function Feed() {
                   title="会場投影用スライドショー"
                   aria-label="投影画面"
                 >
-                  <Tv size={14} />
+                  <PixelTv size={14} />
                   <span className="hidden sm:inline">投影</span>
                 </Link>
                 <Link
@@ -253,7 +253,7 @@ export default function Feed() {
                   title="データベースの状態を表示"
                   aria-label="データベースの状態"
                 >
-                  <Database size={14} />
+                  <PixelDatabase size={14} />
                   <span className="hidden md:inline">DB</span>
                 </Link>
               </>
@@ -265,7 +265,7 @@ export default function Feed() {
               className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:border-ink-400 hover:text-ink-900"
               aria-label="QRコードを表示"
             >
-              <QrCode size={15} />
+              <PixelQrCode size={15} />
               <span className="hidden sm:inline">QR</span>
             </button>
           </div>
@@ -294,7 +294,7 @@ export default function Feed() {
           <div className="py-24 text-center text-sm text-ink-500">{error}</div>
         ) : visiblePosts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <MessageSquareText size={40} className="text-ink-300" />
+            <PixelComment size={36} className="text-ink-300" />
             <p className="mt-4 text-base font-medium text-ink-700">
               まだ投稿がありません
             </p>
@@ -344,7 +344,7 @@ export default function Feed() {
                 className="rounded-full p-2 text-ink-400 transition hover:bg-ink-100 hover:text-ink-700"
                 aria-label="QRコードを閉じる"
               >
-                <X size={18} />
+                <PixelX size={18} />
               </button>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -362,7 +362,7 @@ export default function Feed() {
         onClick={() => setComposerOpen(true)}
         className="app-fab fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-accent-fg shadow-lg transition hover:bg-accent-hover active:scale-95"
       >
-        <PenSquare size={18} />
+        <PixelPen size={18} />
         <span>{postStatus.allowed ? "投稿する" : "投稿案内・締切"}</span>
       </button>
 

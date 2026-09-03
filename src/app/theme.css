@@ -47,3 +47,10 @@
   --font-theme: "PixelMplus12", "Hiragino Sans", "Noto Sans JP", sans-serif;
   --font-smoothing: none;
 }
+
+/* ピクセルアート（ドット絵）アイコンおよびSVGの表示最適化 */
+.pixel-icon,
+svg.lucide {
+  image-rendering: pixelated;
+  shape-rendering: crispEdges;
+}
