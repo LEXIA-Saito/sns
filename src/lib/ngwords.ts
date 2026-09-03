@@ -55,6 +55,11 @@ const ALLOW_PHRASES = [
   "grape",
   "drape",
   "scrape",
+  "罪を犯", // 「罪を犯した」は正当な言い回し（「犯罪を犯して」は残るので止まる）
+  "過ちを犯",
+  "ミスを犯",
+  "ギンギンに冷え", // 「ギンギンに冷えたビール」は普通の言い回し
+  "キンキンに冷え",
 ];
 
 /** 当て字対策。判定の前に読みへ置き換える */
@@ -69,6 +74,10 @@ const HOMOPHONES: Array<[string, string]> = [
   ["尻", "しり"],
   ["汁", "しる"],
   ["舐", "なめ"],
+  ["足", "あし"],
+  ["手", "て"],
+  ["口", "くち"],
+  ["胸", "むね"],
 ];
 
 /** 送信させない語 */
@@ -90,6 +99,11 @@ const BLOCK_WORDS = [
   "せふれ", "やりまん", "童貞", "風俗嬢", "そーぷらんど", "でりへる",
   "援助交際", "えんこう", "売春", "買春", "av女優",
   "おなほ", "でんま", "ばいぶ", "ばいぶれーた", "えねまぐら", "ぶるせら",
+  "でぃるど", "いらま", "ぱいぱん", "てこき", "あしこき", "くちこき",
+  "えろ", "しこい", "むらむら", "びんびん", "ぎんぎん",
+  "むねの谷間", "野獣先輩", "ほもび", "のんけ",
+  // 犯罪の自慢・ほのめかし
+  "犯す", "犯し", "ひき逃げ", "轢き逃げ", "当て逃げ", "飲酒運転", "万引き",
   // 排泄
   "うんこ", "うんち", "おしっこ", "小便", "大便", "糞尿",
   // 差別語
@@ -103,11 +117,17 @@ const BLOCK_WORDS = [
   "覚醒剤", "覚せい剤", "大麻", "こかいん", "へろいん", "しゃぶ中", "麻薬", "違法薬物",
 ];
 
+/**
+ * 投稿全体がその語だけのときに止める。
+ * 「69」のように部分一致だと普通の数字まで巻き込むもの。
+ */
+const EXACT_BLOCK_WORDS = ["69"];
+
 /** 確認のうえ送信できる語（軽い悪態） */
 const WARN_WORDS = [
   "ばか", "馬鹿", "あほ", "阿呆", "くそ", "うざい", "うぜー", "きもい", "きしょい",
   "まぬけ", "間抜け", "無能", "ぶす", "でぶ", "はげ", "だまれ", "黙れ",
-  "ちんちん", "えろ", "えっち", "変態", "すけべ", "ぬーど", "いやらしい", "しばく",
+  "ちんちん", "えっち", "変態", "すけべ", "ぬーど", "いやらしい", "しばく",
 ];
 
 /** カタカナをひらがなへ */
@@ -178,8 +198,11 @@ function includesWord(prepared: string, word: string): boolean {
 
   const holes = Array.from(matched[0]).filter((c) => c === MASK).length;
   if (holes === 0 || holes * 2 > word.length) return holes === 0;
-  if (word.length === 2 && !KANJI.test(matched[0].split(MASK).join(""))) {
-    return false;
+  if (word.length === 2) {
+    // 2文字の語は「痴●」のように頭が見えているときだけ拾う。
+    // 「●人」で伏せ字にした人名まで巻き込まないため
+    if (matched[0].startsWith(MASK)) return false;
+    if (!KANJI.test(matched[0].split(MASK).join(""))) return false;
   }
   return true;
 }
@@ -198,6 +221,10 @@ function countMatches(prepared: string, words: string[]): number {
 export function checkText(text: string): NgCheckResult {
   const prepared = prepare(text);
   if (!prepared) return { level: null, count: 0 };
+
+  if (EXACT_BLOCK_WORDS.includes(prepared)) {
+    return { level: "block", count: 1 };
+  }
 
   const blocked = countMatches(prepared, BLOCK_WORDS);
   if (blocked > 0) return { level: "block", count: blocked };
