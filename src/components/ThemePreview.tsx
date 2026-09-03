@@ -5,7 +5,7 @@ import { THEMES, DEFAULT_THEME_KEY } from "@/lib/themes";
 
 const STORAGE_KEY = "academy26_preview_theme";
 // 暗い配色だけフォームの見た目をダーク側に寄せる
-const DARK_KEYS = new Set(["midnight"]);
+const DARK_KEYS = new Set(["midnight", "whiteline"]);
 
 /** どの案かに関わらず、上書きしうる変数を洗い出しておく */
 const ALL_VAR_NAMES = Array.from(

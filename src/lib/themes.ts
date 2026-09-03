@@ -236,4 +236,4 @@ export const THEMES: ThemeOption[] = [
   },
 ];
 
-export const DEFAULT_THEME_KEY = "mono";
+export const DEFAULT_THEME_KEY = "whiteline";
