@@ -169,6 +169,7 @@ const BLOCK_WORDS = [
   "姦", "官能小説", "官能描写", "ぺろぺろしたい", "ぺろぺろさせ",
   "すまた", "素股", "ぶっかけ", "おなさぽ", "おな禁", "おな電", "白濁",
   "いめーじびでお", "びきに", "ぶらじゃー", "割れ目", "口内", "触手",
+  "工口", "工ロ", "エ口", // 「エロ」を漢字・記号で似せたもの
   "女騎士", "ごぶりん", "孕み袋", "孕み", "拘束ぷれい", "女王様", "調教",
   "ひろぴん", "猟奇", "乳房", "陰嚢", "陰唇", "陰皮", "乳輪", "尿道", "精巣", "玉袋", "膣内",
   "きゃば嬢", "ほすとくらぶ", "黒すとっきんぐ", "ぱんすと", "制服ふぇち",
@@ -309,6 +310,23 @@ function prepare(text: string): string {
   return prepared;
 }
 
+/**
+ * 形の似た文字での置き換え（「チソポ」＝チンポ、「ヲナニー」＝オナニー）。
+ * 置き換えたぶんもあわせて照合するので、見た目を似せてもすり抜けない。
+ */
+const CONFUSABLES: Array<[RegExp, string]> = [
+  [/そ/g, "ん"], // ソ → ン
+  [/を/g, "お"], // ヲ → オ
+];
+
+function withConfusables(prepared: string): string[] {
+  const swapped = CONFUSABLES.reduce(
+    (value, [pattern, replacement]) => value.replace(pattern, replacement),
+    prepared
+  );
+  return swapped === prepared ? [prepared] : [prepared, swapped];
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -365,15 +383,23 @@ export function checkText(text: string): NgCheckResult {
   const prepared = prepare(text);
   if (!prepared) return { level: null, count: 0 };
 
-  if (EXACT_BLOCK_WORDS.includes(prepared)) {
-    return { level: "block", count: 1 };
+  const candidates = withConfusables(prepared);
+
+  for (const candidate of candidates) {
+    if (EXACT_BLOCK_WORDS.includes(candidate)) {
+      return { level: "block", count: 1 };
+    }
   }
 
-  const blocked = countMatches(prepared, BLOCK_WORDS);
-  if (blocked > 0) return { level: "block", count: blocked };
+  for (const candidate of candidates) {
+    const blocked = countMatches(candidate, BLOCK_WORDS);
+    if (blocked > 0) return { level: "block", count: blocked };
+  }
 
-  const warned = countMatches(prepared, WARN_WORDS);
-  if (warned > 0) return { level: "warn", count: warned };
+  for (const candidate of candidates) {
+    const warned = countMatches(candidate, WARN_WORDS);
+    if (warned > 0) return { level: "warn", count: warned };
+  }
 
   return { level: null, count: 0 };
 }
