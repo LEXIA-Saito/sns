@@ -25,7 +25,7 @@
       ".read": "auth != null",
       "$postId": {
         "$accountId": {
-          ".write": "auth != null && auth.uid === $accountId && (!root.child('posts').child($postId).child('moderation/hidden').val() || auth.uid === '26-000')",
+          ".write": "auth != null && auth.uid === $accountId && (root.child('posts').child($postId).child('moderation/hidden').val() !== true || auth.uid === '26-000')",
           ".validate": "newData.val() === true"
         }
       }

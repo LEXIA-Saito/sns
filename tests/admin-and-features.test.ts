@@ -291,4 +291,16 @@ test("database.rules.json のセキュリティ静的リグレッションテス
     assert.ok(commentsRule.moderation[".write"]);
     assert.ok(commentsRule.moderation[".write"].includes("auth.uid === '26-000'"));
   });
+
+  await t.test("likes/$postId/$accountId の.write が単項!ではなくval() !== trueでFirebase互換に記述されている", () => {
+    const likesRule = rulesJson.rules.likes["$postId"]["$accountId"];
+    const writeRule = likesRule[".write"];
+    assert.ok(typeof writeRule === "string");
+    // 単項 ! によるコンパイルエラー（! only operates on booleans）の防止
+    assert.ok(!writeRule.includes("!root.child"), "val()に対する単項!が存在しないこと");
+    // 正確なFirebase互換表現が含まれていること
+    assert.ok(writeRule.includes("root.child('posts').child($postId).child('moderation/hidden').val() !== true"));
+    assert.ok(writeRule.includes("auth.uid === $accountId"));
+    assert.ok(writeRule.includes("auth.uid === '26-000'"));
+  });
 });
