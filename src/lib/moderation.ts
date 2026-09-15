@@ -1,6 +1,7 @@
 import type { Post } from "./types";
 import {
   DEFAULT_TIMELINE_VISIBILITY,
+  canSeeAllPosts,
   isTimelineAuthor,
   type TimelineVisibility,
 } from "./timelineVisibility";
@@ -22,11 +23,13 @@ export function filterVisiblePosts(posts: Post[]): Post[] {
 }
 
 /**
- * タイムラインに流す投稿を絞り込む。
+ * タイムラインに流す投稿を、**見ている人に合わせて**絞り込む。
  *
- * 流れるのは運営画面で表示ONにしたカードと運営（26-000）の投稿だけ。
- * 表示OFFのメンバーは自分の投稿だけ見え、運営は全員ぶんを見る。
- * 絞り込みがOFFのあいだは全員ぶんが流れる。
+ * - 運営（26-000）… 全員ぶん
+ * - アカデミーメンバー（表示ONの人）… **全員ぶん。ＬＯＭメンバーの投稿も見える**
+ * - ＬＯＭメンバー（表示OFFの人）… アカデミーの投稿と、自分の投稿だけ
+ *
+ * 絞り込みがOFFのあいだは、誰から見ても全員ぶんが流れる。
  */
 export function filterTimelinePosts(
   posts: Post[],
@@ -35,6 +38,8 @@ export function filterTimelinePosts(
   visibility: TimelineVisibility = DEFAULT_TIMELINE_VISIBILITY
 ): Post[] {
   if (admin) return posts;
+  // アカデミーメンバーはＬＯＭの投稿も含めて全部見える
+  if (canSeeAllPosts(accountId, visibility)) return posts;
   return posts.filter(
     (post) =>
       isTimelineAuthor(post.accountId, visibility) ||

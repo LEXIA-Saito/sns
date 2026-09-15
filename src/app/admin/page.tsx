@@ -1067,9 +1067,15 @@ export default function AdminDashboardPage() {
               <section className="rounded-xl border border-ink-200 bg-surface p-5">
                 <h2 className="text-base font-bold text-ink-900">タイムラインの絞り込み</h2>
                 <p className="mt-1 text-xs leading-relaxed text-ink-500">
-                  OFFのあいだは<strong>全員の投稿が流れます</strong>。ONにすると、下で表示ONにしたカードと運営（26-000）の投稿だけが
-                  タイムラインと会場の投影画面に出ます。表示OFFの人にも<strong>自分の投稿だけは見えます</strong>（投稿できたのに消える事故を防ぐため）。
+                  OFFのあいだは<strong>全員の投稿が流れます</strong>。ONにすると、下で表示ONにした人＝
+                  <strong>アカデミーメンバー</strong>として扱われます。
                 </p>
+                <ul className="mt-2 space-y-1 text-xs leading-relaxed text-ink-500">
+                  <li>・<strong>アカデミーメンバー</strong>は、ＬＯＭメンバーの投稿も含めて<strong>全部見えます</strong></li>
+                  <li>・<strong>ＬＯＭメンバー</strong>から見えるのは、アカデミーの投稿と自分の投稿だけです</li>
+                  <li>・<strong>会場の投影画面</strong>に出るのはアカデミーの投稿だけ（ＬＯＭの投稿は映りません）</li>
+                  <li>・運営（26-000）の投稿は常に全員に流れます</li>
+                </ul>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <button

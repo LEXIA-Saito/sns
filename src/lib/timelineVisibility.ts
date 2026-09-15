@@ -5,10 +5,18 @@
  * 26期アカデミー生とＬＯＭメンバーの区別はコード側では判断できないため、
  * 運営画面（/admin のタイムライン表示タブ）でカードごとにON/OFFする。
  *
+ * 一覧に載っている人＝**アカデミーメンバー**として扱い、2つの意味を持たせる。
+ *
+ * **誰の投稿が流れるか（書き手として）**
  * - `enabled` が false のあいだは **全員の投稿が流れる**（導入前と同じ挙動）
  * - `enabled` が true なら、`allow` に true で入っているカードだけが流れる
  * - 運営（26-000）の投稿は連絡用なので常に流す
  * - 自分の投稿は、絞り込みで外れていても自分の画面には出る（投稿できたのに消える事故を防ぐ）
+ *
+ * **誰が全部見られるか（読み手として）**
+ * - アカデミーメンバーと運営は、**ＬＯＭメンバーの投稿も含めて全部見える**
+ * - ＬＯＭメンバーから見えるのは、アカデミーの投稿と自分の投稿だけ
+ * - 会場の投影画面は書き手だけで絞るので、ＬＯＭの投稿は映らない
  */
 
 /** 運営アカウント。投稿は常にタイムラインへ流す */
@@ -71,4 +79,17 @@ export function canEnableFilter(
   visibility: TimelineVisibility = DEFAULT_TIMELINE_VISIBILITY
 ): boolean {
   return countAllowedAccounts(visibility) > 0;
+}
+
+/**
+ * この人はタイムラインで**全員の投稿**（ＬＯＭメンバーの投稿を含む）を見られるか。
+ *
+ * 判定そのものは書き手側と同じ一覧を使う（一覧＝アカデミーメンバーだから）が、
+ * 意味が違うので関数を分けてある。片方だけ変えたくなったときにここで分岐できる。
+ */
+export function canSeeAllPosts(
+  accountId: string | undefined,
+  visibility: TimelineVisibility = DEFAULT_TIMELINE_VISIBILITY
+): boolean {
+  return isTimelineAuthor(accountId, visibility);
 }

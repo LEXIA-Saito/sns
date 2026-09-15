@@ -45,6 +45,7 @@ import { filterTimelinePosts, filterProjectorPosts } from "../src/lib/moderation
 import {
   DEFAULT_TIMELINE_VISIBILITY,
   canEnableFilter,
+  canSeeAllPosts,
   countAllowedAccounts,
   isTimelineAuthor,
   normalizeVisibility,
@@ -65,15 +66,25 @@ test("絞り込みOFFのあいだは全員の投稿が流れる（導入前と�
   assert.equal(filterTimelinePosts(timeline, "26-050").length, 3);
 });
 
-test("絞り込みONなら表示ONの投稿と自分の投稿だけになる", () => {
+test("表示OFFの人からは、アカデミーの投稿と自分の投稿だけ見える", () => {
   const forHidden = filterTimelinePosts(timeline, "26-050", false, onlyFirst);
   assert.deepEqual(forHidden.map((p) => p.id), ["a1", "l1"]);
+  // 他人（26-060）の投稿は見えない
+  assert.equal(forHidden.some((p) => p.id === "l2"), false);
+});
 
-  const forShown = filterTimelinePosts(timeline, "26-001", false, onlyFirst);
-  assert.deepEqual(forShown.map((p) => p.id), ["a1"]);
+test("アカデミーメンバーからはＬＯＭメンバーの投稿も見える", () => {
+  assert.equal(canSeeAllPosts("26-001", onlyFirst), true);
+  assert.equal(canSeeAllPosts("26-050", onlyFirst), false);
 
-  // 運営は全部見える
+  // 26-001 はアカデミー側。l1(26-050) と l2(26-060) も含めて全部見える
+  const forAcademy = filterTimelinePosts(timeline, "26-001", false, onlyFirst);
+  assert.deepEqual(forAcademy.map((p) => p.id), ["a1", "l1", "l2"]);
+});
+
+test("運営は全部見える", () => {
   assert.equal(filterTimelinePosts(timeline, "26-000", true, onlyFirst).length, 3);
+  assert.equal(canSeeAllPosts("26-000", onlyFirst), true);
 });
 
 test("運営の投稿は表示ONにしていなくても流れる", () => {
@@ -87,8 +98,8 @@ test("運営の投稿は表示ONにしていなくても流れる", () => {
   );
 });
 
-test("投影画面には『自分の投稿だから見える』の逃げ道がない", () => {
-  // タイムラインでは自分の l1 が見えるが、投影には出ない
+test("投影画面はアカデミーの投稿だけ（読み手の権限は関係ない）", () => {
+  // アカデミーメンバーには l1/l2 も見えるが、会場のスクリーンには出さない
   assert.deepEqual(
     filterProjectorPosts(timeline, onlyFirst).map((p) => p.id),
     ["a1"]
