@@ -25,6 +25,7 @@ const POSTS_PATH = "posts";
 const SETTINGS_PATH = "settings";
 const ACTIVITY_PATH = "accountActivity";
 const AVATAR_RESET_PATH = "avatarResets";
+const TIMELINE_ACCOUNTS_PATH = "timelineAccounts";
 
 /**
  * 投稿の購読(リアルタイム)。新しい順に並べたPost配列をコールバックで返す。
@@ -346,4 +347,56 @@ export function subscribeAllActivities(
       onError?.(err);
     }
   );
+}
+
+// -------------------------------------------------------------
+// タイムライン表示の許可リスト API (timelineAccounts)
+// 書き込めるのは運営（26-000）だけ。ルールは database.rules.json 側で縛る
+// -------------------------------------------------------------
+
+/**
+ * 表示ONになっているカードの購読。
+ * 値が true のものだけがタイムラインに流れる（絞り込みONのとき）。
+ */
+export function subscribeTimelineAccounts(
+  callback: (allow: Record<string, boolean>) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onValue(
+    ref(db, TIMELINE_ACCOUNTS_PATH),
+    (snapshot) => {
+      const val = snapshot.val() as Record<string, unknown> | null;
+      const cleaned: Record<string, boolean> = {};
+      if (val && typeof val === "object") {
+        for (const [accountId, value] of Object.entries(val)) {
+          if (value === true) cleaned[accountId] = true;
+        }
+      }
+      callback(cleaned);
+    },
+    (err) => {
+      console.error("Timeline accounts read error:", err);
+      onError?.(err);
+    }
+  );
+}
+
+/** 1枚ぶんの表示ON/OFF（運営のみ）。OFFはキーごと消して残骸を残さない */
+export async function setTimelineAccount(
+  accountId: string,
+  visible: boolean
+): Promise<void> {
+  await set(ref(db, `${TIMELINE_ACCOUNTS_PATH}/${accountId}`), visible ? true : null);
+}
+
+/** まとめてON/OFF（運営のみ）。全員ON・全員OFFに使う */
+export async function setTimelineAccounts(
+  accountIds: string[],
+  visible: boolean
+): Promise<void> {
+  const updates: Record<string, true | null> = {};
+  for (const accountId of accountIds) {
+    updates[accountId] = visible ? true : null;
+  }
+  await update(ref(db, TIMELINE_ACCOUNTS_PATH), updates);
 }

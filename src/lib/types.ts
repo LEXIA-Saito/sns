@@ -39,6 +39,8 @@ export interface AppSettings {
   postGuideNotice?: string;
   /** ガイド文の箇条書き */
   postGuideLines?: string[];
+  /** タイムラインの絞り込みを使うか（未設定/falseなら全員ぶんを表示） */
+  timelineFilterEnabled?: boolean;
   updatedAt?: number;
   updatedBy?: string;
 }

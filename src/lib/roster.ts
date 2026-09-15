@@ -102,23 +102,14 @@ export function getRosterName(accountId: string): string {
 }
 
 /**
- * 26期アカデミーメンバーのカード番号。
- *
- * タイムラインに流れるのは、ここに載っている人と運営（26-000）の投稿だけ。
- * ＬＯＭメンバーの投稿は本人にしか見えない。
- *
- * ※ 空のあいだは全員の投稿が流れる（名簿が入るまで従来どおり）。
+ * 名簿に載っているカード番号の一覧（26-000 と 26-085 を含む）。
+ * 運営画面のタイムライン表示タブで一覧を出すのに使う。
  */
-export const ACADEMY_ACCOUNT_IDS: string[] = [];
+export const ALL_ACCOUNT_IDS: string[] = Object.keys(ACCOUNT_ROSTER);
 
-/** 運営アカウント。運営の投稿は常にタイムラインへ流す */
-const ADMIN_ID = "26-000";
-
-/** タイムラインに流す投稿の書き手か。名簿が未設定のうちは全員を対象とする */
-export function isAcademyMember(accountId?: string): boolean {
-  const id = (accountId ?? "").trim();
-  if (id === ADMIN_ID) return true;
-  if (ACADEMY_ACCOUNT_IDS.length === 0) return true;
-  if (!id) return false;
-  return ACADEMY_ACCOUNT_IDS.includes(id);
-}
+/**
+ * ※ 誰の投稿をタイムラインに流すかは、ここではなく
+ *   運営がDBで切り替える（src/lib/timelineVisibility.ts）。
+ *   アカデミー生とＬＯＭメンバーの区別はコードからは判断できないため、
+ *   名簿をソースに焼き込む方式はやめた。
+ */

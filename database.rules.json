@@ -94,6 +94,13 @@
           ".validate": false
         }
       }
+    },
+    "timelineAccounts": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.uid === '26-000'",
+      "$accountId": {
+        ".validate": "newData.isBoolean()"
+      }
     }
   }
 }

@@ -41,50 +41,86 @@ test("初期化されていなければ消さない", () => {
 });
 
 // --- タイムラインの絞り込み -------------------------------------------
-import { filterTimelinePosts } from "../src/lib/moderation";
-import { ACADEMY_ACCOUNT_IDS, isAcademyMember } from "../src/lib/roster";
+import { filterTimelinePosts, filterProjectorPosts } from "../src/lib/moderation";
+import {
+  DEFAULT_TIMELINE_VISIBILITY,
+  canEnableFilter,
+  countAllowedAccounts,
+  isTimelineAuthor,
+  normalizeVisibility,
+} from "../src/lib/timelineVisibility";
 
 const timeline: Post[] = [
-  { id: "a1", accountId: "26-001", name: "アカデミー", text: "アカデミーの投稿", createdAt: 1 },
-  { id: "l1", accountId: "26-050", name: "ＬＯＭ", text: "ＬＯＭの投稿", createdAt: 2 },
-  { id: "l2", accountId: "26-060", name: "ＬＯＭ2", text: "別のＬＯＭの投稿", createdAt: 3 },
+  { id: "a1", accountId: "26-001", name: "表示ON", text: "表示ONの投稿", createdAt: 1 },
+  { id: "l1", accountId: "26-050", name: "表示OFF", text: "表示OFFの投稿", createdAt: 2 },
+  { id: "l2", accountId: "26-060", name: "表示OFF2", text: "別の表示OFFの投稿", createdAt: 3 },
 ];
 
-test("名簿が未設定のうちは全員の投稿が流れる（従来どおり）", () => {
-  assert.equal(ACADEMY_ACCOUNT_IDS.length, 0);
-  assert.equal(isAcademyMember("26-050"), true);
+/** 運営が 26-001 だけ表示ONにして絞り込みを有効にした状態 */
+const onlyFirst = normalizeVisibility(true, { "26-001": true });
+
+test("絞り込みOFFのあいだは全員の投稿が流れる（導入前と同じ）", () => {
+  assert.equal(DEFAULT_TIMELINE_VISIBILITY.enabled, false);
+  assert.equal(isTimelineAuthor("26-050", DEFAULT_TIMELINE_VISIBILITY), true);
   assert.equal(filterTimelinePosts(timeline, "26-050").length, 3);
 });
 
-test("名簿があるとアカデミーの投稿と自分の投稿だけになる", () => {
-  ACADEMY_ACCOUNT_IDS.push("26-001");
-  try {
-    const forLom = filterTimelinePosts(timeline, "26-050");
-    assert.deepEqual(forLom.map((p) => p.id), ["a1", "l1"]);
+test("絞り込みONなら表示ONの投稿と自分の投稿だけになる", () => {
+  const forHidden = filterTimelinePosts(timeline, "26-050", false, onlyFirst);
+  assert.deepEqual(forHidden.map((p) => p.id), ["a1", "l1"]);
 
-    const forAcademy = filterTimelinePosts(timeline, "26-001");
-    assert.deepEqual(forAcademy.map((p) => p.id), ["a1"]);
+  const forShown = filterTimelinePosts(timeline, "26-001", false, onlyFirst);
+  assert.deepEqual(forShown.map((p) => p.id), ["a1"]);
 
-    // 運営は全部見える
-    assert.equal(filterTimelinePosts(timeline, "26-000", true).length, 3);
-  } finally {
-    ACADEMY_ACCOUNT_IDS.length = 0;
-  }
+  // 運営は全部見える
+  assert.equal(filterTimelinePosts(timeline, "26-000", true, onlyFirst).length, 3);
 });
 
-test("運営の投稿は名簿になくてもタイムラインに流れる", () => {
-  ACADEMY_ACCOUNT_IDS.push("26-001");
-  try {
-    const withAdmin: Post[] = [
-      ...timeline,
-      { id: "adm", accountId: "26-000", name: "運営", text: "運営からの連絡", createdAt: 9 },
-    ];
-    // ＬＯＭメンバーから見て、アカデミー・運営・自分の投稿が見える
-    assert.deepEqual(
-      filterTimelinePosts(withAdmin, "26-050").map((p) => p.id),
-      ["a1", "l1", "adm"]
-    );
-  } finally {
-    ACADEMY_ACCOUNT_IDS.length = 0;
-  }
+test("運営の投稿は表示ONにしていなくても流れる", () => {
+  const withAdmin: Post[] = [
+    ...timeline,
+    { id: "adm", accountId: "26-000", name: "運営", text: "運営からの連絡", createdAt: 9 },
+  ];
+  assert.deepEqual(
+    filterTimelinePosts(withAdmin, "26-050", false, onlyFirst).map((p) => p.id),
+    ["a1", "l1", "adm"]
+  );
+});
+
+test("投影画面には『自分の投稿だから見える』の逃げ道がない", () => {
+  // タイムラインでは自分の l1 が見えるが、投影には出ない
+  assert.deepEqual(
+    filterProjectorPosts(timeline, onlyFirst).map((p) => p.id),
+    ["a1"]
+  );
+  // 絞り込みOFFなら全部映る
+  assert.equal(filterProjectorPosts(timeline).length, 3);
+});
+
+test("非表示モデレーションは絞り込みより優先される", () => {
+  const withHidden: Post[] = [
+    { ...timeline[0], moderation: { hidden: true } },
+    timeline[1],
+  ];
+  assert.deepEqual(filterProjectorPosts(withHidden, onlyFirst).map((p) => p.id), []);
+});
+
+test("DBの値が壊れていても既定値に倒れる", () => {
+  const v = normalizeVisibility(undefined, { "26-001": "yes", "26-002": true } as never);
+  assert.equal(v.enabled, false);
+  assert.deepEqual(Object.keys(v.allow), ["26-002"]);
+});
+
+test("表示ONの枚数を数える／0枚ならONにさせない", () => {
+  assert.equal(countAllowedAccounts(onlyFirst), 1);
+  assert.equal(canEnableFilter(onlyFirst), true);
+
+  const empty = normalizeVisibility(true, {});
+  assert.equal(countAllowedAccounts(empty), 0);
+  assert.equal(canEnableFilter(empty), false);
+
+  // 運営ぶんは枚数に数えない
+  const adminOnly = normalizeVisibility(true, { "26-000": true });
+  assert.equal(countAllowedAccounts(adminOnly), 0);
+  assert.equal(canEnableFilter(adminOnly), false);
 });

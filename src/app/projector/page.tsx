@@ -16,15 +16,21 @@ import {
 import AdminOnly from "@/components/AdminOnly";
 import Avatar from "@/components/Avatar";
 import LevelBadge from "@/components/LevelBadge";
-import type { Post } from "@/lib/types";
-import { subscribePosts } from "@/lib/posts";
-import { filterVisiblePosts } from "@/lib/moderation";
-import { isAcademyMember } from "@/lib/roster";
+import type { Post, AppSettings } from "@/lib/types";
+import {
+  subscribePosts,
+  subscribeSettings,
+  subscribeTimelineAccounts,
+} from "@/lib/posts";
+import { filterProjectorPosts } from "@/lib/moderation";
+import { normalizeVisibility } from "@/lib/timelineVisibility";
 import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 import { xpByAccount } from "@/lib/level";
 
 export default function ProjectorPage() {
   const [posts, setPosts] = useState<Post[]>([]);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [intervalSec, setIntervalSec] = useState(10); // 秒
@@ -35,18 +41,31 @@ export default function ProjectorPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const hideControlsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 投稿購読
+  // 投稿・設定・表示許可リストの購読
   useEffect(() => {
-    const unsub = subscribePosts((list) => {
+    const unsubPosts = subscribePosts((list) => {
       setPosts(list);
     });
-    return () => unsub();
+    const unsubSettings = subscribeSettings((st) => {
+      setSettings(st);
+    });
+    const unsubTimeline = subscribeTimelineAccounts((allow) => {
+      setTimelineAllow(allow);
+    });
+    return () => {
+      unsubPosts();
+      unsubSettings();
+      unsubTimeline();
+    };
   }, []);
 
-  // 公開投稿のうち、会場に映すのはアカデミーメンバーの投稿だけ
+  // 公開投稿のうち、会場に映すのは運営が表示ONにしたカードの投稿だけ
   const visiblePosts = useMemo(() => {
-    return filterVisiblePosts(posts).filter((post) => isAcademyMember(post.accountId));
-  }, [posts]);
+    return filterProjectorPosts(
+      posts,
+      normalizeVisibility(settings?.timelineFilterEnabled, timelineAllow)
+    );
+  }, [posts, settings?.timelineFilterEnabled, timelineAllow]);
 
   // アカウント経験値マップ
   const xpMap = useMemo(() => {

@@ -33,6 +33,9 @@ import {
   subscribePosts,
   subscribeSettings,
   subscribeAllActivities,
+  subscribeTimelineAccounts,
+  setTimelineAccount,
+  setTimelineAccounts,
   updateSettings,
   setPostModeration,
   deletePost,
@@ -48,10 +51,16 @@ import {
   DEFAULT_POST_DEADLINE_ISO,
 } from "@/lib/settings";
 import { buildAccountProgressList, generateProgressCsv, type AccountProgressItem } from "@/lib/progress";
+import { ACCOUNT_ROSTER, ALL_ACCOUNT_IDS } from "@/lib/roster";
+import {
+  TIMELINE_ADMIN_ID,
+  countAllowedAccounts,
+  normalizeVisibility,
+} from "@/lib/timelineVisibility";
 import { formatPhotoFileName, createZipArchive, type ZipFileEntry } from "@/lib/zip";
 import { formatRelativeTime } from "@/lib/utils";
 
-type AdminTab = "settings" | "posts" | "progress" | "photos";
+type AdminTab = "settings" | "posts" | "progress" | "timeline" | "photos";
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("settings");
@@ -60,6 +69,11 @@ export default function AdminDashboardPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [activities, setActivities] = useState<Record<string, AccountActivity>>({});
+  // タイムライン表示（運営がカードごとにON/OFFする）
+  const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
+  const [timelineSearch, setTimelineSearch] = useState("");
+  const [timelineFilterEnabled, setTimelineFilterEnabled] = useState(false);
+  const [savingTimeline, setSavingTimeline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -97,6 +111,7 @@ export default function AdminDashboardPage() {
     let unsubPosts: (() => void) | undefined;
     let unsubSettings: (() => void) | undefined;
     let unsubAct: (() => void) | undefined;
+    let unsubTimeline: (() => void) | undefined;
 
     try {
       unsubPosts = subscribePosts((list) => {
@@ -113,11 +128,16 @@ export default function AdminDashboardPage() {
           if (st.postGuideLines && Array.isArray(st.postGuideLines)) {
             setGuideLinesText(st.postGuideLines.join("\n"));
           }
+          setTimelineFilterEnabled(st.timelineFilterEnabled === true);
         }
       });
 
       unsubAct = subscribeAllActivities((act) => {
         setActivities(act);
+      });
+
+      unsubTimeline = subscribeTimelineAccounts((allow) => {
+        setTimelineAllow(allow);
       });
     } catch (e) {
       console.error(e);
@@ -128,6 +148,7 @@ export default function AdminDashboardPage() {
       unsubPosts?.();
       unsubSettings?.();
       unsubAct?.();
+      unsubTimeline?.();
     };
   }, []);
 
@@ -424,6 +445,80 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // ---------------------------------------------------------------
+  // タイムライン表示（カードごとのON/OFF）
+  // ---------------------------------------------------------------
+
+  /** 一覧に出すアカウント。運営(26-000)は常時表示なので一覧から外す */
+  const timelineRows = useMemo(() => {
+    const q = timelineSearch.trim();
+    return ALL_ACCOUNT_IDS.filter((id) => id !== TIMELINE_ADMIN_ID).map((id) => ({
+      accountId: id,
+      name: ACCOUNT_ROSTER[id] ?? id,
+      visible: timelineAllow[id] === true,
+    })).filter((row) =>
+      !q || row.accountId.includes(q) || row.name.replace(/\s|　/g, "").includes(q.replace(/\s|　/g, ""))
+    );
+  }, [timelineAllow, timelineSearch]);
+
+  const allowedCount = useMemo(
+    () => countAllowedAccounts(normalizeVisibility(timelineFilterEnabled, timelineAllow)),
+    [timelineFilterEnabled, timelineAllow]
+  );
+
+  const handleToggleTimelineAccount = async (accountId: string, next: boolean) => {
+    setSavingTimeline(true);
+    try {
+      await setTimelineAccount(accountId, next);
+    } catch (e) {
+      console.error(e);
+      setMessage({ text: "表示設定の保存に失敗しました", type: "error" });
+    } finally {
+      setSavingTimeline(false);
+    }
+  };
+
+  /** いま絞り込んで表示している行をまとめてON/OFFする */
+  const handleBulkTimeline = async (next: boolean) => {
+    const ids = timelineRows.map((row) => row.accountId);
+    if (ids.length === 0) return;
+    if (!confirm(`表示中の ${ids.length} 名を${next ? "表示ON" : "表示OFF"}にします。よろしいですか？`)) return;
+    setSavingTimeline(true);
+    try {
+      await setTimelineAccounts(ids, next);
+      setMessage({ text: `${ids.length} 名を${next ? "表示ON" : "表示OFF"}にしました`, type: "success" });
+    } catch (e) {
+      console.error(e);
+      setMessage({ text: "まとめての保存に失敗しました", type: "error" });
+    } finally {
+      setSavingTimeline(false);
+    }
+  };
+
+  const handleToggleTimelineFilter = async (next: boolean) => {
+    if (next && allowedCount === 0) {
+      setMessage({
+        text: "表示ONのカードが1枚もありません。先に表示する人を選んでください",
+        type: "error",
+      });
+      return;
+    }
+    setSavingTimeline(true);
+    try {
+      await updateSettings({ timelineFilterEnabled: next });
+      setTimelineFilterEnabled(next);
+      setMessage({
+        text: next ? "絞り込みをONにしました" : "絞り込みをOFFにしました（全員ぶんが流れます）",
+        type: "success",
+      });
+    } catch (e) {
+      console.error(e);
+      setMessage({ text: "スイッチの保存に失敗しました", type: "error" });
+    } finally {
+      setSavingTimeline(false);
+    }
+  };
+
   return (
     <AdminOnly
       title="運営管理ダッシュボード"
@@ -501,6 +596,17 @@ export default function AdminDashboardPage() {
             >
               <Users size={14} />
               <span>参加進捗 (85名)</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("timeline")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition whitespace-nowrap ${
+                activeTab === "timeline"
+                  ? "bg-accent text-accent-fg shadow-sm"
+                  : "bg-surface text-ink-600 border border-ink-200 hover:bg-ink-100"
+              }`}
+            >
+              <Eye size={14} />
+              <span>タイムライン表示 ({allowedCount})</span>
             </button>
             <button
               onClick={() => setActiveTab("photos")}
@@ -952,6 +1058,126 @@ export default function AdminDashboardPage() {
           {/* ========================================================= */}
           {/* タブ 4: 写真素材一覧・一括ダウンロード */}
           {/* ========================================================= */}
+          {/* ========================================================= */}
+          {/* タブ: タイムライン表示 */}
+          {/* ========================================================= */}
+          {activeTab === "timeline" && (
+            <div className="space-y-4">
+              {/* 全体スイッチ */}
+              <section className="rounded-xl border border-ink-200 bg-surface p-5">
+                <h2 className="text-base font-bold text-ink-900">タイムラインの絞り込み</h2>
+                <p className="mt-1 text-xs leading-relaxed text-ink-500">
+                  OFFのあいだは<strong>全員の投稿が流れます</strong>。ONにすると、下で表示ONにしたカードと運営（26-000）の投稿だけが
+                  タイムラインと会場の投影画面に出ます。表示OFFの人にも<strong>自分の投稿だけは見えます</strong>（投稿できたのに消える事故を防ぐため）。
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void handleToggleTimelineFilter(!timelineFilterEnabled)}
+                    disabled={savingTimeline}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
+                      timelineFilterEnabled
+                        ? "bg-accent text-accent-fg"
+                        : "border border-ink-300 bg-surface text-ink-700 hover:bg-ink-100"
+                    }`}
+                  >
+                    {timelineFilterEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                    <span>{timelineFilterEnabled ? "絞り込み ON" : "絞り込み OFF"}</span>
+                  </button>
+                  <span className="text-sm text-ink-600">
+                    表示ON： <strong className="text-ink-900">{allowedCount}</strong> 名（＋運営）
+                  </span>
+                </div>
+
+                {timelineFilterEnabled && allowedCount === 0 && (
+                  <p className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <span>表示ONのカードが1枚もありません。いま会場に映るのは運営の投稿だけです。</span>
+                  </p>
+                )}
+                {!timelineFilterEnabled && (
+                  <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <span>いまは絞り込みOFFです。名簿にいる全員の投稿がタイムラインに流れています。</span>
+                  </p>
+                )}
+              </section>
+
+              {/* 一覧 */}
+              <section className="rounded-xl border border-ink-200 bg-surface p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="text-base font-bold text-ink-900">表示する人を選ぶ</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative w-full sm:w-52">
+                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" />
+                      <input
+                        type="text"
+                        value={timelineSearch}
+                        onChange={(e) => setTimelineSearch(e.target.value)}
+                        placeholder="氏名・番号で絞り込む"
+                        className="w-full rounded-md border border-ink-200 bg-surface py-1.5 pl-8 pr-2 text-xs text-ink-900 placeholder:text-ink-400"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleBulkTimeline(true)}
+                      disabled={savingTimeline || timelineRows.length === 0}
+                      className="whitespace-nowrap rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-100 disabled:opacity-50"
+                    >
+                      表示中を全部ON
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleBulkTimeline(false)}
+                      disabled={savingTimeline || timelineRows.length === 0}
+                      className="whitespace-nowrap rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-100 disabled:opacity-50"
+                    >
+                      表示中を全部OFF
+                    </button>
+                  </div>
+                </div>
+
+                <p className="mt-2 text-xs text-ink-500">
+                  {timelineRows.length} 名を表示中（運営 26-000 は常に流れるので一覧には出しません）
+                </p>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {timelineRows.map((row) => (
+                    <button
+                      key={row.accountId}
+                      type="button"
+                      onClick={() => void handleToggleTimelineAccount(row.accountId, !row.visible)}
+                      disabled={savingTimeline}
+                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left transition disabled:opacity-50 ${
+                        row.visible
+                          ? "border-accent/40 bg-accent/10"
+                          : "border-ink-200 bg-surface hover:bg-ink-100"
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-xs font-mono text-ink-400">{row.accountId}</span>
+                        <span className="block truncate text-sm font-medium text-ink-900">{row.name}</span>
+                      </span>
+                      <span
+                        className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold ${
+                          row.visible ? "bg-accent text-accent-fg" : "bg-ink-100 text-ink-500"
+                        }`}
+                      >
+                        {row.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+                        {row.visible ? "表示" : "非表示"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {timelineRows.length === 0 && (
+                  <p className="py-10 text-center text-sm text-ink-400">該当する人がいません</p>
+                )}
+              </section>
+            </div>
+          )}
+
           {activeTab === "photos" && (
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

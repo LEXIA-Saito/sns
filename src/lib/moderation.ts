@@ -1,5 +1,9 @@
 import type { Post } from "./types";
-import { isAcademyMember } from "./roster";
+import {
+  DEFAULT_TIMELINE_VISIBILITY,
+  isTimelineAuthor,
+  type TimelineVisibility,
+} from "./timelineVisibility";
 
 /**
  * 投稿が一般タイムラインおよび投影画面で表示可能か判定。
@@ -20,16 +24,33 @@ export function filterVisiblePosts(posts: Post[]): Post[] {
 /**
  * タイムラインに流す投稿を絞り込む。
  *
- * 流れるのはアカデミーメンバーの投稿だけ。
- * ＬＯＭメンバーは自分の投稿だけ見え、運営は全員ぶんを見る。
+ * 流れるのは運営画面で表示ONにしたカードと運営（26-000）の投稿だけ。
+ * 表示OFFのメンバーは自分の投稿だけ見え、運営は全員ぶんを見る。
+ * 絞り込みがOFFのあいだは全員ぶんが流れる。
  */
 export function filterTimelinePosts(
   posts: Post[],
   accountId: string,
-  admin = false
+  admin = false,
+  visibility: TimelineVisibility = DEFAULT_TIMELINE_VISIBILITY
 ): Post[] {
   if (admin) return posts;
   return posts.filter(
-    (post) => isAcademyMember(post.accountId) || post.accountId === accountId
+    (post) =>
+      isTimelineAuthor(post.accountId, visibility) ||
+      post.accountId === accountId
+  );
+}
+
+/**
+ * 会場の投影画面に映す投稿。
+ * 「自分の投稿だから見える」の逃げ道が無いぶん、タイムラインより厳しい。
+ */
+export function filterProjectorPosts(
+  posts: Post[],
+  visibility: TimelineVisibility = DEFAULT_TIMELINE_VISIBILITY
+): Post[] {
+  return filterVisiblePosts(posts).filter((post) =>
+    isTimelineAuthor(post.accountId, visibility)
   );
 }

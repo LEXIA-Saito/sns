@@ -16,11 +16,16 @@ import type { Post, AppSettings } from "@/lib/types";
 import {
   subscribePosts,
   subscribeSettings,
+  subscribeTimelineAccounts,
   recordAccountLogin,
   subscribeAvatarReset,
 } from "@/lib/posts";
 import { filterTimelinePosts, filterVisiblePosts } from "@/lib/moderation";
 import { canCreatePost } from "@/lib/settings";
+import {
+  normalizeVisibility,
+  type TimelineVisibility,
+} from "@/lib/timelineVisibility";
 import { useNow } from "@/lib/useNow";
 import {
   buildSession,
@@ -42,6 +47,8 @@ import Avatar from "./Avatar";
 export default function Feed() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  // 運営が切り替えるタイムライン表示の許可リスト
+  const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -155,6 +162,7 @@ export default function Feed() {
     }
     let unsubPosts: (() => void) | undefined;
     let unsubSettings: (() => void) | undefined;
+    let unsubTimeline: (() => void) | undefined;
 
     try {
       unsubPosts = subscribePosts(
@@ -177,6 +185,10 @@ export default function Feed() {
       unsubSettings = subscribeSettings((st) => {
         setSettings(st);
       });
+
+      unsubTimeline = subscribeTimelineAccounts((allow) => {
+        setTimelineAllow(allow);
+      });
     } catch (e) {
       console.error(e);
       setError("接続に失敗しました。設定をご確認ください。");
@@ -185,17 +197,29 @@ export default function Feed() {
     return () => {
       unsubPosts?.();
       unsubSettings?.();
+      unsubTimeline?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseConfigured, demo, session?.accountId]);
 
+  // 運営が切り替えた「表示するカード」の設定
+  const timelineVisibility: TimelineVisibility = useMemo(
+    () => normalizeVisibility(settings?.timelineFilterEnabled, timelineAllow),
+    [settings?.timelineFilterEnabled, timelineAllow]
+  );
+
   // 一般フィードでは非表示投稿を除外し、
-  // タイムラインに流すのはアカデミーメンバーの投稿（と自分の投稿）だけにする
+  // タイムラインに流すのは運営が表示ONにしたカード（と自分の投稿）だけにする
   const visiblePosts = useMemo(() => {
     const shown = filterVisiblePosts(posts);
     if (!session) return shown;
-    return filterTimelinePosts(shown, session.accountId, session.admin === true);
-  }, [posts, session]);
+    return filterTimelinePosts(
+      shown,
+      session.accountId,
+      session.admin === true,
+      timelineVisibility
+    );
+  }, [posts, session, timelineVisibility]);
 
   // 新規投稿の受付状態判定
   const postStatus = useMemo(() => {
