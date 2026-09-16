@@ -14,6 +14,7 @@ import type { Session } from "@/lib/session";
 import { deletePost, updatePost, setPostModeration } from "@/lib/posts";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
+import ImageViewer from "./ImageViewer";
 import LevelBadge from "./LevelBadge";
 import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 
@@ -39,6 +40,7 @@ export default function PostCard({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [moderating, setModerating] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   const isHidden = Boolean(post.moderation?.hidden);
 
@@ -218,13 +220,20 @@ export default function PostCard({
       {post.media && (
         <div className="bg-media">
           {post.media.type === "image" ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={post.media.url}
-              alt="投稿画像"
-              className="max-h-[70vh] w-full object-contain"
-              loading="lazy"
-            />
+            <button
+              type="button"
+              onClick={() => setViewerOpen(true)}
+              className="block w-full cursor-zoom-in"
+              aria-label="画像を拡大表示"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.media.url}
+                alt="投稿画像"
+                className="max-h-[70vh] w-full object-contain"
+                loading="lazy"
+              />
+            </button>
           ) : (
             <video
               src={post.media.url}
@@ -234,6 +243,14 @@ export default function PostCard({
             />
           )}
         </div>
+      )}
+
+      {viewerOpen && post.media?.type === "image" && (
+        <ImageViewer
+          src={post.media.url}
+          alt="投稿画像"
+          onClose={() => setViewerOpen(false)}
+        />
       )}
 
       {editing && (
