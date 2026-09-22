@@ -76,3 +76,21 @@ body {
     radial-gradient(circle at 20% 12%, rgb(var(--gate-glow) / 0.22), transparent 58%),
     linear-gradient(160deg, rgb(var(--gate-from)), rgb(var(--gate-to)));
 }
+
+/* オープニング。ロゴが止まるのに合わせて文字を下から出す */
+@keyframes opening-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.opening-rise {
+  animation: opening-rise 700ms ease-out 900ms both;
+}
+.opening-rise-late {
+  animation: opening-rise 700ms ease-out 1800ms both;
+}

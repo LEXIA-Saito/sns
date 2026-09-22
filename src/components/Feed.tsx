@@ -40,6 +40,7 @@ import { xpByAccount } from "@/lib/level";
 import PostCard from "./PostCard";
 import PostComposer from "./PostComposer";
 import LoginGate from "./LoginGate";
+import Logo3D from "./Logo3D";
 import SetupNotice from "./SetupNotice";
 import ProfileSetup from "./ProfileSetup";
 import Avatar from "./Avatar";
@@ -229,7 +230,7 @@ export default function Feed() {
   if (!sessionReady) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-canvas text-ink-400">
-        <Loader2 size={28} className="animate-spin" />
+        <Logo3D variant="spin" className="h-32 w-32" />
         <p className="mt-3 text-sm">読み込み中...</p>
       </div>
     );
