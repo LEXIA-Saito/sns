@@ -36,6 +36,8 @@ import {
   subscribePosts,
   subscribeSettings,
   subscribeAllActivities,
+  subscribeAccountNames,
+  setAccountName,
   subscribeTimelineAccounts,
   setTimelineAccount,
   setTimelineAccounts,
@@ -57,6 +59,13 @@ import {
 import { buildAccountProgressList, generateProgressCsv, type AccountProgressItem } from "@/lib/progress";
 import { ACCOUNT_ROSTER, ALL_ACCOUNT_IDS } from "@/lib/roster";
 import {
+  ACCOUNT_NAME_MAX,
+  applyAccountNames,
+  normalizeAccountName,
+  validateAccountName,
+  type AccountNames,
+} from "@/lib/accountNames";
+import {
   TIMELINE_ADMIN_ID,
   countAllowedAccounts,
   normalizeVisibility,
@@ -70,7 +79,17 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>("settings");
 
   // データ状態
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [rawPosts, setPosts] = useState<Post[]>([]);
+  // 運営が変更した氏名。投稿・進捗・タイムライン表示の氏名に上書きする
+  const [accountNames, setAccountNames] = useState<AccountNames>({});
+  const posts = useMemo(
+    () => applyAccountNames(rawPosts, accountNames),
+    [rawPosts, accountNames]
+  );
+  // 氏名の編集中のカード番号と入力値
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [savingNameId, setSavingNameId] = useState<string | null>(null);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [activities, setActivities] = useState<Record<string, AccountActivity>>({});
   // タイムライン表示（運営がカードごとにON/OFFする）
@@ -116,6 +135,7 @@ export default function AdminDashboardPage() {
     let unsubSettings: (() => void) | undefined;
     let unsubAct: (() => void) | undefined;
     let unsubTimeline: (() => void) | undefined;
+    let unsubNames: (() => void) | undefined;
 
     try {
       unsubPosts = subscribePosts((list) => {
@@ -143,6 +163,10 @@ export default function AdminDashboardPage() {
       unsubTimeline = subscribeTimelineAccounts((allow) => {
         setTimelineAllow(allow);
       });
+
+      unsubNames = subscribeAccountNames((names) => {
+        setAccountNames(names);
+      });
     } catch (e) {
       console.error(e);
       setLoading(false);
@@ -153,6 +177,7 @@ export default function AdminDashboardPage() {
       unsubSettings?.();
       unsubAct?.();
       unsubTimeline?.();
+      unsubNames?.();
     };
   }, []);
 
@@ -304,8 +329,10 @@ export default function AdminDashboardPage() {
   // タブ3: アカウント進捗
   // -------------------------------------------------------------
   const rawProgressList = useMemo(() => {
-    return buildAccountProgressList(posts, activities, false); // 26-001〜26-085
-  }, [posts, activities]);
+    return buildAccountProgressList(posts, activities, false).map((item) =>
+      accountNames[item.accountId] ? { ...item, name: accountNames[item.accountId] } : item
+    ); // 26-001〜26-085
+  }, [posts, activities, accountNames]);
 
   const filteredProgressList = useMemo(() => {
     let list = rawProgressList.filter((item) => {
@@ -330,6 +357,57 @@ export default function AdminDashboardPage() {
 
     return list;
   }, [rawProgressList, progressFilter, progressSearch, progressSort]);
+
+  // 氏名の変更（進捗タブ）。保存すると、過去の投稿・投影画面・本人の画面の表示も変わる
+  const startEditName = (accountId: string, currentName: string) => {
+    setEditingNameId(accountId);
+    setNameInput(currentName);
+  };
+
+  const cancelEditName = () => {
+    setEditingNameId(null);
+    setNameInput("");
+  };
+
+  const handleSaveName = async (accountId: string, currentName: string) => {
+    const name = normalizeAccountName(nameInput);
+    const error = validateAccountName(name);
+    if (error) {
+      notify(error, "error");
+      return;
+    }
+    if (name === currentName) {
+      cancelEditName();
+      return;
+    }
+    setSavingNameId(accountId);
+    try {
+      // 名簿と同じ名前に戻したときは、変更を取り消して名簿の名前に戻す
+      await setAccountName(accountId, name === ACCOUNT_ROSTER[accountId] ? "" : name);
+      notify(`${accountId} の名前を「${name}」に変更しました`);
+      cancelEditName();
+    } catch (err) {
+      console.error(err);
+      notify("名前の変更に失敗しました", "error");
+    } finally {
+      setSavingNameId(null);
+    }
+  };
+
+  const handleRestoreName = async (accountId: string, currentName: string) => {
+    const original = ACCOUNT_ROSTER[accountId] ?? accountId;
+    if (!confirm(`「${currentName}」を名簿の名前「${original}」に戻します。よろしいですか？`)) return;
+    setSavingNameId(accountId);
+    try {
+      await setAccountName(accountId, "");
+      notify(`${accountId} の名前を「${original}」に戻しました`);
+    } catch (err) {
+      console.error(err);
+      notify("名前を戻せませんでした", "error");
+    } finally {
+      setSavingNameId(null);
+    }
+  };
 
   // 不適切なアイコンを、名前のみの初期表示へ戻す。
   // 過去の投稿に焼き付いたぶんも外し、本人の端末にも反映される
@@ -470,12 +548,12 @@ export default function AdminDashboardPage() {
     const q = timelineSearch.trim();
     return ALL_ACCOUNT_IDS.filter((id) => id !== TIMELINE_ADMIN_ID).map((id) => ({
       accountId: id,
-      name: ACCOUNT_ROSTER[id] ?? id,
+      name: accountNames[id] ?? ACCOUNT_ROSTER[id] ?? id,
       visible: timelineAllow[id] === true,
     })).filter((row) =>
       !q || row.accountId.includes(q) || row.name.replace(/\s|　/g, "").includes(q.replace(/\s|　/g, ""))
     );
-  }, [timelineAllow, timelineSearch]);
+  }, [timelineAllow, timelineSearch, accountNames]);
 
   const allowedCount = useMemo(
     () => countAllowedAccounts(normalizeVisibility(timelineFilterEnabled, timelineAllow)),
@@ -1043,7 +1121,67 @@ export default function AdminDashboardPage() {
                           {item.accountId}
                         </td>
                         <td className="px-3 py-2 font-medium text-ink-900">
-                          {item.name}
+                          {editingNameId === item.accountId ? (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={nameInput}
+                                maxLength={ACCOUNT_NAME_MAX}
+                                autoFocus
+                                onChange={(e) => setNameInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.nativeEvent.isComposing) return;
+                                  if (e.key === "Enter") void handleSaveName(item.accountId, item.name);
+                                  if (e.key === "Escape") cancelEditName();
+                                }}
+                                aria-label={`${item.accountId} の名前`}
+                                className="w-36 rounded-md border border-ink-300 bg-surface px-2 py-1 text-xs text-ink-900 outline-none focus:border-accent"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void handleSaveName(item.accountId, item.name)}
+                                disabled={savingNameId === item.accountId}
+                                className="rounded-md bg-accent px-2 py-1 text-[11px] font-semibold text-accent-fg disabled:opacity-50"
+                              >
+                                {savingNameId === item.accountId ? "保存中..." : "保存"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditName}
+                                disabled={savingNameId === item.accountId}
+                                className="rounded-md border border-ink-200 px-2 py-1 text-[11px] font-semibold text-ink-600 disabled:opacity-50"
+                              >
+                                キャンセル
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span>{item.name}</span>
+                              {accountNames[item.accountId] && (
+                                <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold text-accent">
+                                  変更済み
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => startEditName(item.accountId, item.name)}
+                                disabled={savingNameId === item.accountId}
+                                className="rounded-md border border-ink-200 px-1.5 py-0.5 text-[11px] font-semibold text-ink-600 transition hover:border-ink-400 hover:text-ink-900 disabled:opacity-50"
+                              >
+                                名前を変更
+                              </button>
+                              {accountNames[item.accountId] && (
+                                <button
+                                  type="button"
+                                  onClick={() => void handleRestoreName(item.accountId, item.name)}
+                                  disabled={savingNameId === item.accountId}
+                                  className="text-[11px] text-ink-400 underline hover:text-ink-700 disabled:opacity-50"
+                                >
+                                  元に戻す
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="px-3 py-2">
                           {item.isLoggedIn ? (

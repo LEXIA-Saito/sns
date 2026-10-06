@@ -21,6 +21,13 @@
         }
       }
     },
+    "accountNames": {
+      ".read": "auth != null",
+      "$accountId": {
+        ".write": "auth != null && auth.uid === '26-000' && $accountId !== '26-000'",
+        ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+      }
+    },
     "avatarResets": {
       ".read": "auth != null",
       "$accountId": {

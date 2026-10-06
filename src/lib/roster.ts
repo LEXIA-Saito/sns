@@ -92,8 +92,22 @@ export const ACCOUNT_ROSTER: Record<string, string> = {
   "26-085": "予備アカウント",
 };
 
+/**
+ * 運営が管理画面で変更した氏名（カード番号 → 氏名）。
+ * 名簿そのものは書き換えず、表示と新規投稿の氏名にだけ上書きする。
+ * 運営（26-000）の名前は変えられない。
+ */
+let nameOverrides: Record<string, string> = {};
+
+export function setNameOverrides(overrides: Record<string, string>): void {
+  nameOverrides = { ...overrides };
+}
+
 export function getRosterName(accountId: string): string {
   const trimmed = (accountId ?? "").trim();
+  if (trimmed !== "26-000" && nameOverrides[trimmed]) {
+    return nameOverrides[trimmed];
+  }
   if (ACCOUNT_ROSTER[trimmed]) {
     return ACCOUNT_ROSTER[trimmed];
   }

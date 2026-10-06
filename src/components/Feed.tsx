@@ -17,11 +17,14 @@ import {
   subscribePosts,
   subscribeSettings,
   subscribeTimelineAccounts,
+  subscribeAccountNames,
   recordAccountLogin,
   subscribeAvatarReset,
 } from "@/lib/posts";
 import { filterTimelinePosts, filterVisiblePosts, isPostPinned, sortPinnedFirst } from "@/lib/moderation";
 import { canCreatePost } from "@/lib/settings";
+import { applyAccountNames, type AccountNames } from "@/lib/accountNames";
+import { getRosterName, setNameOverrides } from "@/lib/roster";
 import {
   normalizeVisibility,
   type TimelineVisibility,
@@ -46,7 +49,13 @@ import ProfileSetup from "./ProfileSetup";
 import Avatar from "./Avatar";
 
 export default function Feed() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [rawPosts, setPosts] = useState<Post[]>([]);
+  // 運営が管理画面で変更した氏名（カード番号 → 氏名）
+  const [accountNames, setAccountNames] = useState<AccountNames>({});
+  const posts = useMemo(
+    () => applyAccountNames(rawPosts, accountNames),
+    [rawPosts, accountNames]
+  );
   const [settings, setSettings] = useState<AppSettings | null>(null);
   // 運営が切り替えるタイムライン表示の許可リスト
   const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
@@ -164,6 +173,7 @@ export default function Feed() {
     let unsubPosts: (() => void) | undefined;
     let unsubSettings: (() => void) | undefined;
     let unsubTimeline: (() => void) | undefined;
+    let unsubNames: (() => void) | undefined;
 
     try {
       unsubPosts = subscribePosts(
@@ -190,6 +200,12 @@ export default function Feed() {
       unsubTimeline = subscribeTimelineAccounts((allow) => {
         setTimelineAllow(allow);
       });
+
+      // 氏名の変更。読めなくても（ルール未反映など）フィード自体は止めない
+      unsubNames = subscribeAccountNames((names) => {
+        setNameOverrides(names);
+        setAccountNames(names);
+      });
     } catch (e) {
       console.error(e);
       setError("接続に失敗しました。設定をご確認ください。");
@@ -199,9 +215,19 @@ export default function Feed() {
       unsubPosts?.();
       unsubSettings?.();
       unsubTimeline?.();
+      unsubNames?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseConfigured, demo, session?.accountId]);
+
+  // 自分の氏名が変更されたら、ヘッダーや投稿画面に出る名前も合わせる
+  useEffect(() => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const name = getRosterName(prev.accountId);
+      return name === prev.name ? prev : { ...prev, name };
+    });
+  }, [accountNames]);
 
   // 運営が切り替えた「表示するカード」の設定
   const timelineVisibility: TimelineVisibility = useMemo(

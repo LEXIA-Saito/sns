@@ -19,12 +19,19 @@ import {
 import { db, storage } from "./firebase";
 import { getRosterName } from "./roster";
 import { buildAvatarResetUpdates } from "./avatarReset";
+import {
+  cleanAccountNames,
+  normalizeAccountName,
+  validateAccountName,
+  type AccountNames,
+} from "./accountNames";
 import type { Media, Post, ModerationInfo, AppSettings, AccountActivity } from "./types";
 
 const POSTS_PATH = "posts";
 const SETTINGS_PATH = "settings";
 const ACTIVITY_PATH = "accountActivity";
 const AVATAR_RESET_PATH = "avatarResets";
+const ACCOUNT_NAMES_PATH = "accountNames";
 const TIMELINE_ACCOUNTS_PATH = "timelineAccounts";
 
 /**
@@ -391,6 +398,44 @@ export function subscribeTimelineAccounts(
       onError?.(err);
     }
   );
+}
+
+// -------------------------------------------------------------
+// 氏名の変更 API (accountNames)
+// 書き込めるのは運営（26-000）だけ。ルールは database.rules.json 側で縛る
+// -------------------------------------------------------------
+
+/** 運営が変更した氏名の購読（カード番号 → 氏名） */
+export function subscribeAccountNames(
+  callback: (names: AccountNames) => void,
+  onError?: (error: Error) => void
+): Unsubscribe {
+  return onValue(
+    ref(db, ACCOUNT_NAMES_PATH),
+    (snapshot) => callback(cleanAccountNames(snapshot.val())),
+    (err) => {
+      console.error("Account names read error:", err);
+      onError?.(err);
+    }
+  );
+}
+
+/**
+ * 氏名を変更する（運営のみ）。空文字なら変更を取り消して名簿の氏名に戻す。
+ */
+export async function setAccountName(
+  accountId: string,
+  name: string
+): Promise<void> {
+  const nameRef = ref(db, `${ACCOUNT_NAMES_PATH}/${accountId}`);
+  const trimmed = normalizeAccountName(name);
+  if (!trimmed) {
+    await remove(nameRef);
+    return;
+  }
+  const error = validateAccountName(trimmed);
+  if (error) throw new Error(error);
+  await set(nameRef, trimmed);
 }
 
 /** 1枚ぶんの表示ON/OFF（運営のみ）。OFFはキーごと消して残骸を残さない */

@@ -21,14 +21,21 @@ import {
   subscribePosts,
   subscribeSettings,
   subscribeTimelineAccounts,
+  subscribeAccountNames,
 } from "@/lib/posts";
+import { applyAccountNames, type AccountNames } from "@/lib/accountNames";
 import { filterProjectorPosts } from "@/lib/moderation";
 import { normalizeVisibility } from "@/lib/timelineVisibility";
 import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 import { xpByAccount } from "@/lib/level";
 
 export default function ProjectorPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [rawPosts, setPosts] = useState<Post[]>([]);
+  const [accountNames, setAccountNames] = useState<AccountNames>({});
+  const posts = useMemo(
+    () => applyAccountNames(rawPosts, accountNames),
+    [rawPosts, accountNames]
+  );
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -52,10 +59,14 @@ export default function ProjectorPage() {
     const unsubTimeline = subscribeTimelineAccounts((allow) => {
       setTimelineAllow(allow);
     });
+    const unsubNames = subscribeAccountNames((names) => {
+      setAccountNames(names);
+    });
     return () => {
       unsubPosts();
       unsubSettings();
       unsubTimeline();
+      unsubNames();
     };
   }, []);
 
