@@ -20,7 +20,7 @@ import {
   recordAccountLogin,
   subscribeAvatarReset,
 } from "@/lib/posts";
-import { filterTimelinePosts, filterVisiblePosts } from "@/lib/moderation";
+import { filterTimelinePosts, filterVisiblePosts, isPostPinned, sortPinnedFirst } from "@/lib/moderation";
 import { canCreatePost } from "@/lib/settings";
 import {
   normalizeVisibility,
@@ -210,16 +210,21 @@ export default function Feed() {
   );
 
   // 一般フィードでは非表示投稿を除外し、
-  // タイムラインに流すのは運営が表示ONにしたカード（と自分の投稿）だけにする
+  // タイムラインに流すのは運営が表示ONにしたカード（と自分の投稿）だけにする。
+  // 運営の固定投稿は絞り込みに関係なく先頭に出す
   const visiblePosts = useMemo(() => {
     const shown = filterVisiblePosts(posts);
-    if (!session) return shown;
-    return filterTimelinePosts(
-      shown,
-      session.accountId,
-      session.admin === true,
-      timelineVisibility
-    );
+    const filtered = session
+      ? filterTimelinePosts(
+          shown,
+          session.accountId,
+          session.admin === true,
+          timelineVisibility
+        )
+      : shown;
+    const pinned = shown.filter(isPostPinned);
+    const rest = filtered.filter((p) => !isPostPinned(p));
+    return sortPinnedFirst([...pinned, ...rest]);
   }, [posts, session, timelineVisibility]);
 
   // 新規投稿の受付状態判定

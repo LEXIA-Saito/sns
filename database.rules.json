@@ -57,6 +57,10 @@
           ".write": "auth != null && (data.parent().child('accountId').val() === auth.uid || auth.uid === '26-000')",
           ".validate": "newData.isNumber()"
         },
+        "pinnedAt": {
+          ".write": "auth != null && auth.uid === '26-000'",
+          ".validate": "newData.isNumber() && newData.parent().child('accountId').val() === '26-000'"
+        },
         "moderation": {
           ".write": "auth != null && auth.uid === '26-000'",
           ".validate": "auth.uid === '26-000' || (data.exists() && data.val() === newData.val())",

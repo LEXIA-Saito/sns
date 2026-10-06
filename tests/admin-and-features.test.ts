@@ -9,6 +9,9 @@ import {
 import {
   isPostVisible,
   filterVisiblePosts,
+  canPinPost,
+  isPostPinned,
+  sortPinnedFirst,
 } from "../src/lib/moderation";
 import {
   buildAccountProgressList,
@@ -236,5 +239,42 @@ test("database.rules.json のセキュリティ静的リグレッションテス
   await t.test("いいね・コメントのルールが残っていない", () => {
     assert.equal(rulesJson.rules.likes, undefined);
     assert.equal(postsRule.comments, undefined);
+  });
+});
+
+test("運営投稿の固定表示 (canPinPost / isPostPinned / sortPinnedFirst)", async (t) => {
+  const mk = (id: string, accountId: string, createdAt: number, pinnedAt?: number): Post => ({
+    id,
+    accountId,
+    name: id,
+    text: "",
+    createdAt,
+    ...(pinnedAt !== undefined ? { pinnedAt } : {}),
+  });
+
+  await t.test("固定できるのは運営アカウント(26-000)の投稿だけ", () => {
+    assert.equal(canPinPost(mk("a", "26-000", 1)), true);
+    assert.equal(canPinPost(mk("b", "26-001", 1)), false);
+  });
+
+  await t.test("参加者の投稿に pinnedAt があっても固定扱いにならない", () => {
+    assert.equal(isPostPinned(mk("b", "26-001", 1, 99)), false);
+    assert.equal(isPostPinned(mk("a", "26-000", 1, 99)), true);
+    assert.equal(isPostPinned(mk("a", "26-000", 1)), false);
+  });
+
+  await t.test("固定投稿は先頭へ、固定同士は新しく固定した順、他は元の順を保つ", () => {
+    const list = [
+      mk("new", "26-001", 400),
+      mk("pinOld", "26-000", 100, 10),
+      mk("mid", "26-002", 300),
+      mk("pinNew", "26-000", 200, 20),
+    ];
+    assert.deepEqual(sortPinnedFirst(list).map((p) => p.id), ["pinNew", "pinOld", "new", "mid"]);
+  });
+
+  await t.test("固定がなければ並びは変わらない", () => {
+    const list = [mk("x", "26-001", 2), mk("y", "26-002", 1)];
+    assert.deepEqual(sortPinnedFirst(list).map((p) => p.id), ["x", "y"]);
   });
 });

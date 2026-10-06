@@ -212,6 +212,18 @@ export async function setPostModeration(
 }
 
 /**
+ * 投稿の固定表示を切り替える（運営のみ。固定できるのは運営アカウントの投稿だけ）
+ */
+export async function setPostPinned(
+  postId: string,
+  pinned: boolean
+): Promise<void> {
+  await update(ref(db, `${POSTS_PATH}/${postId}`), {
+    pinnedAt: pinned ? serverTimestamp() : null,
+  });
+}
+
+/**
  * 運営が全投稿を削除する。
  * Storage の画像・動画も消してから、投稿をまとめて削除する。
  * 画像の削除に失敗しても投稿の削除は続ける（残骸より投稿が消えることを優先）。

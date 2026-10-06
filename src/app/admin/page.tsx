@@ -23,10 +23,13 @@ import {
   Tv,
   Database,
   Users,
+  Pin,
+  PinOff,
   AlertTriangle,
   FileSpreadsheet,
 } from "lucide-react";
 import AdminOnly from "@/components/AdminOnly";
+import { canPinPost, isPostPinned } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import type { Post, AppSettings, AccountActivity } from "@/lib/types";
 import {
@@ -38,6 +41,7 @@ import {
   setTimelineAccounts,
   updateSettings,
   setPostModeration,
+  setPostPinned,
   deletePost,
   resetAccountAvatar,
   deleteAllPosts,
@@ -235,6 +239,18 @@ export default function AdminDashboardPage() {
         console.error(err);
         notify("非表示処理に失敗しました", "error");
       }
+    }
+  };
+
+  const handleTogglePostPin = async (post: Post) => {
+    const pinned = isPostPinned(post);
+    if (!pinned && !confirm("この投稿をタイムラインの先頭に固定しますか？")) return;
+    try {
+      await setPostPinned(post.id, !pinned);
+      notify(pinned ? "固定を解除しました" : "タイムラインの先頭に固定しました");
+    } catch (err) {
+      console.error(err);
+      notify("固定の切り替えに失敗しました", "error");
     }
   };
 
@@ -832,6 +848,11 @@ export default function AdminDashboardPage() {
                                     非表示中
                                   </span>
                                 )}
+                                {isPostPinned(post) && (
+                                  <span className="rounded bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-fg">
+                                    固定中
+                                  </span>
+                                )}
                               </div>
                               <time className="text-[11px] text-ink-400">
                                 {formatJstDateTime(post.createdAt)}
@@ -841,6 +862,20 @@ export default function AdminDashboardPage() {
 
                           {/* 運営アクション */}
                           <div className="flex items-center gap-2">
+                            {canPinPost(post) && !isHidden && (
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePostPin(post)}
+                                className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                                  isPostPinned(post)
+                                    ? "bg-accent text-accent-fg hover:opacity-90"
+                                    : "border border-ink-300 text-ink-700 hover:bg-ink-100"
+                                }`}
+                              >
+                                {isPostPinned(post) ? <PinOff size={13} /> : <Pin size={13} />}
+                                <span>{isPostPinned(post) ? "固定を解除" : "先頭に固定"}</span>
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleTogglePostHide(post)}

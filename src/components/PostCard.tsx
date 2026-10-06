@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pin } from "lucide-react";
 import {
   PixelTrash,
   PixelEdit,
@@ -12,6 +12,7 @@ import {
 import type { Post } from "@/lib/types";
 import type { Session } from "@/lib/session";
 import { deletePost, updatePost, setPostModeration } from "@/lib/posts";
+import { isPostPinned } from "@/lib/moderation";
 import { formatRelativeTime } from "@/lib/utils";
 import Avatar from "./Avatar";
 import ImageViewer from "./ImageViewer";
@@ -153,6 +154,12 @@ export default function PostCard({
             </span>
             {/* 運営はレベルの対象外 */}
             {post.accountId !== ADMIN_ACCOUNT_ID && <LevelBadge xp={authorXp} />}
+            {isPostPinned(post) && (
+              <span className="inline-flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-fg">
+                <Pin size={11} />
+                固定
+              </span>
+            )}
           </div>
           <time className="text-xs text-ink-400">
             {formatRelativeTime(post.createdAt, now)}

@@ -59,3 +59,28 @@ export function filterProjectorPosts(
     isTimelineAuthor(post.accountId, visibility)
   );
 }
+
+/** 運営アカウントのID（固定表示できる投稿の持ち主） */
+export const OPERATOR_ACCOUNT_ID = "26-000";
+
+/** 固定表示できる投稿か（運営アカウントの投稿のみ） */
+export function canPinPost(post: Post): boolean {
+  return post.accountId === OPERATOR_ACCOUNT_ID;
+}
+
+/** 固定表示中か（運営アカウントの投稿で pinnedAt があるもの） */
+export function isPostPinned(post: Post): boolean {
+  return canPinPost(post) && typeof post.pinnedAt === "number";
+}
+
+/**
+ * 固定投稿を先頭に寄せる。固定同士は新しく固定した順、
+ * それ以外は元の並び（新しい順）を保つ。
+ */
+export function sortPinnedFirst(posts: Post[]): Post[] {
+  const pinned = posts
+    .filter(isPostPinned)
+    .sort((a, b) => (b.pinnedAt ?? 0) - (a.pinnedAt ?? 0));
+  const rest = posts.filter((p) => !isPostPinned(p));
+  return [...pinned, ...rest];
+}

@@ -26,6 +26,8 @@ export interface Post {
   media?: Media | null;
   createdAt: number;
   updatedAt?: number;
+  /** タイムライン先頭に固定した日時（Unixミリ秒）。未設定なら固定なし。運営アカウントの投稿のみ固定できる */
+  pinnedAt?: number;
   moderation?: ModerationInfo;
 }
 
