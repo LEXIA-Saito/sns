@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Pin } from "lucide-react";
 import {
-  PixelTrash,
   PixelEdit,
   PixelEye,
   PixelEyeOff,
+  PixelLoader,
+  PixelPin,
+  PixelTrash,
   PixelX,
 } from "./PixelIcon";
 import type { Post } from "@/lib/types";
@@ -156,7 +157,7 @@ export default function PostCard({
             {post.accountId !== ADMIN_ACCOUNT_ID && <LevelBadge xp={authorXp} />}
             {isPostPinned(post) && (
               <span className="inline-flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-[11px] font-bold text-accent-fg">
-                <Pin size={11} />
+                <PixelPin size={11} />
                 固定
               </span>
             )}
@@ -183,7 +184,7 @@ export default function PostCard({
               aria-label={isHidden ? "投稿を復元" : "投稿を非表示"}
             >
               {moderating ? (
-                <Loader2 size={16} className="animate-spin" />
+                <PixelLoader size={16} className="animate-spin" />
               ) : isHidden ? (
                 <PixelEye size={16} />
               ) : (
@@ -209,7 +210,7 @@ export default function PostCard({
                 className="rounded-full p-2 text-ink-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="投稿を削除"
               >
-                {deleting ? <Loader2 size={16} className="animate-spin" /> : <PixelTrash size={16} />}
+                {deleting ? <PixelLoader size={16} className="animate-spin" /> : <PixelTrash size={16} />}
               </button>
             </>
           )}
@@ -305,7 +306,7 @@ export default function PostCard({
               >
                 {saving ? (
                   <>
-                    <Loader2 size={16} className="animate-spin" />
+                    <PixelLoader size={16} className="animate-spin" />
                     保存中...
                   </>
                 ) : (

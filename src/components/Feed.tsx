@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
 import {
-  PixelPen,
   PixelComment,
   PixelDatabase,
+  PixelLoader,
+  PixelPen,
   PixelQrCode,
-  PixelX,
   PixelShield,
   PixelTv,
+  PixelX,
 } from "./PixelIcon";
 import type { Post, AppSettings } from "@/lib/types";
 import {
@@ -350,7 +350,7 @@ export default function Feed() {
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-ink-400">
-            <Loader2 size={28} className="animate-spin" />
+            <PixelLoader size={28} className="animate-spin" />
             <p className="mt-3 text-sm">読み込み中...</p>
           </div>
         ) : error === "permission" ? (

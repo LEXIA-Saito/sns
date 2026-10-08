@@ -20,7 +20,7 @@ export default function LevelBadge({ xp, className }: LevelBadgeProps) {
       )}
       title={`${tier.label} / レベル${level}`}
     >
-      <LevelIcon rank={tier.rank} size={12} />
+      <LevelIcon rank={tier.rank} size={16} />
       Lv.{level}
     </span>
   );

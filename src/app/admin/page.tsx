@@ -2,32 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Download,
-  Eye,
-  EyeOff,
-  Filter,
-  Flame,
-  Image as ImageIcon,
-  Loader2,
-  MessageCircle,
-  RefreshCw,
-  Save,
-  Search,
-  Shield,
-  Trash2,
-  Tv,
-  Database,
-  Users,
-  Pin,
-  PinOff,
-  AlertTriangle,
-  FileSpreadsheet,
-} from "lucide-react";
+import { PixelArrowLeft, PixelCalendar, PixelCheck, PixelComment, PixelDatabase, PixelDownload, PixelEye, PixelEyeOff, PixelLoader, PixelPin, PixelPinOff, PixelSave, PixelSearch, PixelShield, PixelSpreadsheet, PixelTrash, PixelTv, PixelUsers, PixelWarning,
+  PixelImage,
+} from "@/components/PixelIcon";
 import AdminOnly from "@/components/AdminOnly";
 import { canPinPost, isPostPinned } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
@@ -627,11 +604,11 @@ export default function AdminDashboardPage() {
                 href="/"
                 className="flex items-center gap-1.5 rounded-md border border-ink-200 bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-700 transition hover:bg-ink-100 hover:text-ink-900"
               >
-                <ArrowLeft size={15} />
+                <PixelArrowLeft size={15} />
                 <span>SNSへ戻る</span>
               </Link>
               <div className="flex items-center gap-1.5">
-                <Shield size={18} className="text-accent" />
+                <PixelShield size={18} className="text-accent" />
                 <h1 className="text-base font-bold text-ink-900">運営管理画面</h1>
               </div>
             </div>
@@ -642,7 +619,7 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-1.5 rounded-md border border-accent/40 bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20"
                 title="会場投影画面を開く"
               >
-                <Tv size={15} />
+                <PixelTv size={15} />
                 <span>投影モード</span>
               </Link>
               <Link
@@ -650,7 +627,7 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-1.5 rounded-md border border-ink-200 px-2.5 py-1.5 text-xs font-medium text-ink-600 transition hover:bg-ink-100 hover:text-ink-900"
                 title="データベース接続状態"
               >
-                <Database size={15} />
+                <PixelDatabase size={15} />
                 <span className="hidden sm:inline">DB状態</span>
               </Link>
             </div>
@@ -666,7 +643,7 @@ export default function AdminDashboardPage() {
                   : "bg-surface text-ink-600 border border-ink-200 hover:bg-ink-100"
               }`}
             >
-              <Calendar size={14} />
+              <PixelCalendar size={14} />
               <span>受付・締切管理</span>
             </button>
             <button
@@ -677,7 +654,7 @@ export default function AdminDashboardPage() {
                   : "bg-surface text-ink-600 border border-ink-200 hover:bg-ink-100"
               }`}
             >
-              <MessageCircle size={14} />
+              <PixelComment size={14} />
               <span>投稿管理 ({posts.length})</span>
             </button>
             <button
@@ -688,7 +665,7 @@ export default function AdminDashboardPage() {
                   : "bg-surface text-ink-600 border border-ink-200 hover:bg-ink-100"
               }`}
             >
-              <Users size={14} />
+              <PixelUsers size={14} />
               <span>参加進捗 (85名)</span>
             </button>
             <button
@@ -699,7 +676,7 @@ export default function AdminDashboardPage() {
                   : "bg-surface text-ink-600 border border-ink-200 hover:bg-ink-100"
               }`}
             >
-              <Eye size={14} />
+              <PixelEye size={14} />
               <span>タイムライン表示 ({allowedCount})</span>
             </button>
             <button
@@ -710,7 +687,7 @@ export default function AdminDashboardPage() {
                   : "bg-surface text-ink-600 border border-ink-200 hover:bg-ink-100"
               }`}
             >
-              <ImageIcon size={14} />
+              <PixelImage size={14} />
               <span>写真素材 ({photoPosts.length})</span>
             </button>
           </div>
@@ -842,7 +819,7 @@ export default function AdminDashboardPage() {
                     disabled={savingSettings}
                     className="flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-bold text-accent-fg transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {savingSettings ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    {savingSettings ? <PixelLoader size={16} className="animate-spin" /> : <PixelSave size={16} />}
                     <span>設定を保存する</span>
                   </button>
                 </div>
@@ -886,7 +863,7 @@ export default function AdminDashboardPage() {
                   </button>
 
                 <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                  <PixelSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
                   <input
                     type="text"
                     value={postSearch}
@@ -950,7 +927,7 @@ export default function AdminDashboardPage() {
                                     : "border border-ink-300 text-ink-700 hover:bg-ink-100"
                                 }`}
                               >
-                                {isPostPinned(post) ? <PinOff size={13} /> : <Pin size={13} />}
+                                {isPostPinned(post) ? <PixelPinOff size={13} /> : <PixelPin size={13} />}
                                 <span>{isPostPinned(post) ? "固定を解除" : "先頭に固定"}</span>
                               </button>
                             )}
@@ -963,7 +940,7 @@ export default function AdminDashboardPage() {
                                   : "border border-ink-300 text-ink-700 hover:bg-ink-100"
                               }`}
                             >
-                              {isHidden ? <Eye size={13} /> : <EyeOff size={13} />}
+                              {isHidden ? <PixelEye size={13} /> : <PixelEyeOff size={13} />}
                               <span>{isHidden ? "再公開（復元）" : "非表示にする"}</span>
                             </button>
                             <button
@@ -972,7 +949,7 @@ export default function AdminDashboardPage() {
                               className="rounded-md border border-red-500/30 p-1.5 text-red-400 hover:bg-red-500/10 hover:text-red-300"
                               title="完全削除"
                             >
-                              <Trash2 size={14} />
+                              <PixelTrash size={14} />
                             </button>
                           </div>
                         </div>
@@ -1094,7 +1071,7 @@ export default function AdminDashboardPage() {
                     onClick={handleDownloadCsv}
                     className="flex items-center gap-1 rounded-md bg-emerald-700 px-3 py-1 text-xs font-semibold text-white transition hover:bg-emerald-600"
                   >
-                    <FileSpreadsheet size={14} />
+                    <PixelSpreadsheet size={14} />
                     <span>CSV</span>
                   </button>
                 </div>
@@ -1186,7 +1163,7 @@ export default function AdminDashboardPage() {
                         <td className="px-3 py-2">
                           {item.isLoggedIn ? (
                             <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
-                              <CheckCircle2 size={12} /> 済
+                              <PixelCheck size={12} /> 済
                             </span>
                           ) : (
                             <span className="text-ink-400">未記録</span>
@@ -1261,7 +1238,7 @@ export default function AdminDashboardPage() {
                         : "border border-ink-300 bg-surface text-ink-700 hover:bg-ink-100"
                     }`}
                   >
-                    {timelineFilterEnabled ? <Eye size={16} /> : <EyeOff size={16} />}
+                    {timelineFilterEnabled ? <PixelEye size={16} /> : <PixelEyeOff size={16} />}
                     <span>{timelineFilterEnabled ? "絞り込み ON" : "絞り込み OFF"}</span>
                   </button>
                   <span className="text-sm text-ink-600">
@@ -1271,13 +1248,13 @@ export default function AdminDashboardPage() {
 
                 {timelineFilterEnabled && allowedCount === 0 && (
                   <p className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
-                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <PixelWarning size={14} className="mt-0.5 shrink-0" />
                     <span>表示ONのカードが1枚もありません。いま会場に映るのは運営の投稿だけです。</span>
                   </p>
                 )}
                 {!timelineFilterEnabled && (
                   <p className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <PixelWarning size={14} className="mt-0.5 shrink-0" />
                     <span>いまは絞り込みOFFです。名簿にいる全員の投稿がタイムラインに流れています。</span>
                   </p>
                 )}
@@ -1289,7 +1266,7 @@ export default function AdminDashboardPage() {
                   <h2 className="text-base font-bold text-ink-900">表示する人を選ぶ</h2>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="relative w-full sm:w-52">
-                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" />
+                      <PixelSearch size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" />
                       <input
                         type="text"
                         value={timelineSearch}
@@ -1343,7 +1320,7 @@ export default function AdminDashboardPage() {
                           row.visible ? "bg-accent text-accent-fg" : "bg-ink-100 text-ink-500"
                         }`}
                       >
-                        {row.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+                        {row.visible ? <PixelEye size={12} /> : <PixelEyeOff size={12} />}
                         {row.visible ? "表示" : "非表示"}
                       </span>
                     </button>
@@ -1375,12 +1352,12 @@ export default function AdminDashboardPage() {
                 >
                   {downloadingZip ? (
                     <>
-                      <Loader2 size={15} className="animate-spin" />
+                      <PixelLoader size={15} className="animate-spin" />
                       <span>{downloadProgress || "ダウンロード中..."}</span>
                     </>
                   ) : (
                     <>
-                      <Download size={15} />
+                      <PixelDownload size={15} />
                       <span>表示中の写真を一括ダウンロード (ZIP)</span>
                     </>
                   )}
@@ -1431,7 +1408,7 @@ export default function AdminDashboardPage() {
                             onClick={() => handleDownloadSinglePhoto(post, idx)}
                             className="mt-3 w-full rounded border border-ink-200 bg-ink-50 py-1 text-[11px] font-semibold text-ink-700 transition hover:bg-ink-100 flex items-center justify-center gap-1"
                           >
-                            <Download size={12} />
+                            <PixelDownload size={12} />
                             <span>個別保存</span>
                           </button>
                         </div>

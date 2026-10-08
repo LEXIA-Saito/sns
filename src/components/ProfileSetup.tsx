@@ -1,8 +1,12 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
-import { PixelX, PixelCamera, PixelLogOut } from "./PixelIcon";
+import {
+  PixelCamera,
+  PixelLoader,
+  PixelLogOut,
+  PixelX,
+} from "./PixelIcon";
 import { uploadAvatarImage } from "@/lib/posts";
 import Avatar from "./Avatar";
 
@@ -116,7 +120,7 @@ export default function ProfileSetup({
               <Avatar name={defaultName || "?"} avatarUrl={avatarUrl} size="xl" />
               <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
                 {isUploading ? (
-                  <Loader2 size={24} className="animate-spin text-white" />
+                  <PixelLoader size={24} className="animate-spin text-white" />
                 ) : (
                   <PixelCamera size={24} className="text-white" />
                 )}

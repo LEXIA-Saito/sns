@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Lock } from "lucide-react";
+import { PixelArrowLeft, PixelLock } from "./PixelIcon";
 import { ADMIN_ACCOUNT_ID, onAuthStateChanged } from "@/lib/auth";
 
 /**
@@ -36,7 +36,7 @@ export default function AdminOnly({
   if (!allowed) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-media px-6 text-center text-white">
-        <Lock size={28} className="text-white/60" />
+        <PixelLock size={28} className="text-white/60" />
         <div>
           <p className="text-base font-bold">{title}</p>
           <p className="mt-2 text-sm leading-relaxed text-white/60 max-w-sm">
@@ -47,7 +47,7 @@ export default function AdminOnly({
           href="/"
           className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
         >
-          <ArrowLeft size={16} />
+          <PixelArrowLeft size={16} />
           SNSへ戻る
         </Link>
       </main>

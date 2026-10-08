@@ -1,16 +1,16 @@
 import Link from "next/link";
 import {
-  Activity,
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  Clock3,
-  Database,
-  HardDrive,
-  Server,
-  ShieldCheck,
-  XCircle,
-} from "lucide-react";
+  PixelArrowLeft,
+  PixelChart,
+  PixelCheck,
+  PixelClock,
+  PixelDatabase,
+  PixelServer,
+  PixelShield,
+  PixelStorage,
+  PixelWarning,
+  PixelX,
+} from "@/components/PixelIcon";
 import type { Post } from "@/lib/types";
 import AdminOnly from "@/components/AdminOnly";
 
@@ -144,9 +144,9 @@ function formatPostTime(value?: number) {
 }
 
 function StatusIcon({ level }: { level: StatusLevel }) {
-  if (level === "ok") return <CheckCircle2 className="h-6 w-6 text-emerald-500" />;
-  if (level === "warning") return <AlertTriangle className="h-6 w-6 text-amber-500" />;
-  return <XCircle className="h-6 w-6 text-red-500" />;
+  if (level === "ok") return <PixelCheck className="h-6 w-6 text-emerald-500" />;
+  if (level === "warning") return <PixelWarning className="h-6 w-6 text-amber-500" />;
+  return <PixelX className="h-6 w-6 text-red-500" />;
 }
 
 export default async function StatusPage() {
@@ -156,9 +156,9 @@ export default async function StatusPage() {
   const configuredCount = requiredEnv.filter((key) => Boolean(process.env[key])).length;
 
   const cards = [
-    { label: "投稿数", value: probe.posts.length, icon: Database, helper: "postsノード" },
-    { label: "メディア付き", value: mediaCount, icon: HardDrive, helper: "画像・動画" },
-    { label: "応答時間", value: probe.latencyMs === null ? "--" : `${probe.latencyMs}ms`, icon: Activity, helper: "SSR fetch" },
+    { label: "投稿数", value: probe.posts.length, icon: PixelDatabase, helper: "postsノード" },
+    { label: "メディア付き", value: mediaCount, icon: PixelStorage, helper: "画像・動画" },
+    { label: "応答時間", value: probe.latencyMs === null ? "--" : `${probe.latencyMs}ms`, icon: PixelChart, helper: "SSR fetch" },
   ];
 
   return (
@@ -170,7 +170,7 @@ export default async function StatusPage() {
               href="/"
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
             >
-              <ArrowLeft size={16} />
+              <PixelArrowLeft size={16} />
               SNSへ戻る
             </Link>
             <Link
@@ -186,7 +186,7 @@ export default async function StatusPage() {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-                  <Server size={14} />
+                  <PixelServer size={14} />
                   SSR STATUS PAGE
                 </div>
                 <h1 className="mt-4 text-2xl font-black tracking-tight sm:text-4xl">
@@ -235,7 +235,7 @@ export default async function StatusPage() {
             <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
               <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
                 <div className="flex items-center gap-2 text-sm font-bold">
-                  <ShieldCheck size={18} />
+                  <PixelShield size={18} />
                   Firebase環境変数
                 </div>
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
@@ -251,7 +251,7 @@ export default async function StatusPage() {
 
               <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
                 <div className="flex items-center gap-2 text-sm font-bold">
-                  <Clock3 size={18} />
+                  <PixelClock size={18} />
                   最新投稿
                 </div>
                 {latestPost ? (

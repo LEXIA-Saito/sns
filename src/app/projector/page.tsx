@@ -2,17 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useRef } from "react";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  Minimize2,
-  Pause,
-  Play,
-  Settings,
-  Shield,
-} from "lucide-react";
+import { PixelChevronLeft, PixelChevronRight, PixelCollapse, PixelExpand, PixelPause, PixelPlay, PixelShield } from "@/components/PixelIcon";
 import AdminOnly from "@/components/AdminOnly";
 import Avatar from "@/components/Avatar";
 import LevelBadge from "@/components/LevelBadge";
@@ -257,7 +247,7 @@ export default function ProjectorPage() {
               className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 hover:text-white transition"
               title="管理画面へ"
             >
-              <Shield size={14} />
+              <PixelShield size={14} />
               <span>管理画面</span>
             </Link>
 
@@ -269,21 +259,21 @@ export default function ProjectorPage() {
               className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition"
               aria-label="前の投稿へ"
             >
-              <ChevronLeft size={20} />
+              <PixelChevronLeft size={20} />
             </button>
             <button
               onClick={() => setIsPlaying(!isPlaying)}
               className="rounded-full bg-white text-black p-2.5 hover:bg-white/90 transition shadow"
               aria-label={isPlaying ? "一時停止" : "再生"}
             >
-              {isPlaying ? <Pause size={18} /> : <Play size={18} className="translate-x-0.5" />}
+              {isPlaying ? <PixelPause size={18} /> : <PixelPlay size={18} className="translate-x-0.5" />}
             </button>
             <button
               onClick={handleNext}
               className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition"
               aria-label="次の投稿へ"
             >
-              <ChevronRight size={20} />
+              <PixelChevronRight size={20} />
             </button>
 
             <div className="h-4 w-px bg-white/20" />
@@ -306,7 +296,7 @@ export default function ProjectorPage() {
               className="rounded-full p-2 text-white/80 hover:bg-white/10 hover:text-white transition"
               title="全画面表示"
             >
-              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+              {isFullscreen ? <PixelCollapse size={18} /> : <PixelExpand size={18} />}
             </button>
           </div>
         </div>

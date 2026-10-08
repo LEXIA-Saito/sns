@@ -49,8 +49,7 @@
 }
 
 /* ピクセルアート（ドット絵）アイコンおよびSVGの表示最適化 */
-.pixel-icon,
-svg.lucide {
+.pixel-icon {
   image-rendering: pixelated;
   shape-rendering: crispEdges;
 }

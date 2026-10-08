@@ -1,8 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2, Clock, AlertCircle } from "lucide-react";
-import { PixelX, PixelCamera, PixelFilm, PixelSparkle } from "./PixelIcon";
+import {
+  PixelCamera,
+  PixelClock,
+  PixelFilm,
+  PixelLoader,
+  PixelSparkle,
+  PixelWarning,
+  PixelX,
+} from "./PixelIcon";
 import { createPost } from "@/lib/posts";
 import { checkText, NG_BLOCK_MESSAGE, NG_WARN_MESSAGE } from "@/lib/ngwords";
 import type { Session } from "@/lib/session";
@@ -226,7 +233,7 @@ export default function PostComposer({
           {/* 受付状態・締切に関する注意表示 */}
           {!postStatus.allowed ? (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-300 flex items-start gap-2.5">
-              <AlertCircle size={16} className="shrink-0 text-amber-400 mt-0.5" />
+              <PixelWarning size={16} className="shrink-0 text-amber-400 mt-0.5" />
               <div>
                 <p className="font-semibold text-amber-200">
                   {postStatus.isDeadlinePassed ? "投稿受付期間終了" : "投稿受付停止中"}
@@ -238,7 +245,7 @@ export default function PostComposer({
             </div>
           ) : settings?.postDeadline ? (
             <div className="rounded-md border border-ink-200 bg-ink-50 px-3 py-1.5 text-[11px] text-ink-500 flex items-center gap-1.5">
-              <Clock size={12} className="text-ink-400" />
+              <PixelClock size={12} className="text-ink-400" />
               <span>投稿締切: {formatJstDateTime(settings.postDeadline)} まで</span>
             </div>
           ) : null}
@@ -354,7 +361,7 @@ export default function PostComposer({
           >
             {submitting ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <PixelLoader size={16} className="animate-spin" />
                 投稿中...
               </>
             ) : !postStatus.allowed ? (

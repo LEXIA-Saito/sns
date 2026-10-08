@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, ScanLine } from "lucide-react";
-import { PixelLogIn, PixelKey } from "./PixelIcon";
+import {
+  PixelKey,
+  PixelLoader,
+  PixelLogIn,
+  PixelScan,
+} from "./PixelIcon";
 import { signInWithCard, CardSignInError } from "@/lib/auth";
 
 interface LoginGateProps {
@@ -136,7 +140,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
           >
             {checking ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
+                <PixelLoader size={16} className="animate-spin" />
                 確認中...
               </>
             ) : (
@@ -148,7 +152,7 @@ export default function LoginGate({ onLogin }: LoginGateProps) {
           </button>
 
           <div className="mt-4 flex items-start gap-2 rounded-lg bg-ink-50 px-3 py-2.5 text-[11px] leading-relaxed text-ink-500">
-            <ScanLine size={14} className="mt-0.5 shrink-0" />
+            <PixelScan size={14} className="mt-0.5 shrink-0" />
             <p>
               カードのQRコードを読み取ると、この画面が開きます。
               カード記載のIDとパスワードを入力してください。
