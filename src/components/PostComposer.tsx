@@ -38,6 +38,8 @@ interface PostComposerProps {
   onProfileEdit: () => void;
   settings?: AppSettings | null;
   now?: number;
+  /** アカデミーメンバーか（締切の対象外にする） */
+  isAcademy?: boolean;
 }
 
 const MAX_FILE_MB = 50;
@@ -50,6 +52,7 @@ export default function PostComposer({
   onProfileEdit,
   settings,
   now = Date.now(),
+  isAcademy = false,
 }: PostComposerProps) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -59,7 +62,7 @@ export default function PostComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isAdmin = session.admin === true;
-  const postStatus = canCreatePost(settings, now, isAdmin);
+  const postStatus = canCreatePost(settings, now, isAdmin, isAcademy);
 
   if (!open) return null;
 

@@ -50,6 +50,18 @@ test("受付状態・締切判定の検証 (canCreatePost)", async (t) => {
 
   });
 
+  await t.test("アカデミーメンバーは締切超過後も投稿できる（LOMメンバーは不可のまま）", () => {
+    const st: AppSettings = { postDeadline: deadline };
+    assert.equal(canCreatePost(st, deadline + 1, false, true).allowed, true);
+    assert.equal(canCreatePost(st, deadline + 1, false, false).allowed, false);
+  });
+
+  await t.test("スイッチOFFはアカデミーメンバーにも効く（締切だけが対象外）", () => {
+    const st: AppSettings = { postAccepting: false, postDeadline: deadline };
+    assert.equal(canCreatePost(st, deadline + 1, false, true).allowed, false);
+    assert.match(canCreatePost(st, deadline + 1, false, true).reason || "", /一時停止/);
+  });
+
   await t.test("管理者 (isAdmin=true) はスイッチOFFや締切超過でも常に許可（バイパス）", () => {
     const bothBlocked: AppSettings = {
       postAccepting: false,

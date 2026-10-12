@@ -74,11 +74,13 @@ export function parseJstDateTimeLocal(localStr: string): number | null {
  * - settings が未作成または未設定なら「受付中」
  * - postAccepting === false なら受付停止
  * - postDeadline が設定されており now >= postDeadline なら締切超過
+ *   （アカデミーメンバー＝運営が timelineAccounts で ON にしたカードは、締切の対象外）
  */
 export function canCreatePost(
   settings: AppSettings | null | undefined,
   now: number,
-  isAdmin: boolean = false
+  isAdmin: boolean = false,
+  isAcademy: boolean = false
 ): CheckActionStatusResult {
   if (isAdmin) {
     return { allowed: true };
@@ -92,8 +94,8 @@ export function canCreatePost(
     };
   }
 
-  // 2. 締切判定
-  if (settings?.postDeadline && now >= settings.postDeadline) {
+  // 2. 締切判定（アカデミーメンバーは締切後も投稿できる。スイッチOFFは全員に効く）
+  if (!isAcademy && settings?.postDeadline && now >= settings.postDeadline) {
     return {
       allowed: false,
       isDeadlinePassed: true,

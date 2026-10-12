@@ -254,9 +254,12 @@ export default function Feed() {
   }, [posts, session, timelineVisibility]);
 
   // 新規投稿の受付状態判定
+  // アカデミー判定は、絞り込みのON/OFFに関係なく timelineAccounts の一覧そのもので見る
+  // （database.rules.json の締切バイパスと同じ条件）
+  const isAcademy = !!session?.accountId && timelineAllow[session.accountId] === true;
   const postStatus = useMemo(() => {
-    return canCreatePost(settings, now, session?.admin === true);
-  }, [settings, now, session?.admin]);
+    return canCreatePost(settings, now, session?.admin === true, isAcademy);
+  }, [settings, now, session?.admin, isAcademy]);
 
   if (!sessionReady) {
     return (
@@ -447,6 +450,7 @@ export default function Feed() {
         }}
         settings={settings}
         now={now}
+        isAcademy={isAcademy}
       />
 
       <ProfileSetup
