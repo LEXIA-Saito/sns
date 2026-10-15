@@ -11,6 +11,7 @@ import {
   PixelX,
 } from "./PixelIcon";
 import { createPost } from "@/lib/posts";
+import { describePostError } from "@/lib/media";
 import { checkText, NG_BLOCK_MESSAGE, NG_WARN_MESSAGE } from "@/lib/ngwords";
 import type { Session } from "@/lib/session";
 import type { AppSettings } from "@/lib/types";
@@ -134,7 +135,7 @@ export default function PostComposer({
       onClose();
     } catch (e) {
       console.error(e);
-      alert("投稿に失敗しました。Firebaseの設定をご確認ください。");
+      alert(describePostError(e));
     } finally {
       setSubmitting(false);
     }

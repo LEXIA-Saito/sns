@@ -290,3 +290,20 @@ test("運営投稿の固定表示 (canPinPost / isPostPinned / sortPinnedFirst)"
     assert.deepEqual(sortPinnedFirst(list).map((p) => p.id), ["x", "y"]);
   });
 });
+
+test("メディアの種別補完とエラー文言 (media)", async (t) => {
+  const { resolveContentType, describePostError } = await import("../src/lib/media");
+
+  await t.test("File.type が空でも拡張子から image/video を補う", () => {
+    assert.equal(resolveContentType({ name: "IMG_0001.HEIC", type: "" }), "image/heic");
+    assert.equal(resolveContentType({ name: "clip.MOV", type: "" }), "video/quicktime");
+    assert.equal(resolveContentType({ name: "a.jpg", type: "image/jpeg" }), "image/jpeg");
+  });
+
+  await t.test("エラーコードごとに文言を分ける", () => {
+    assert.match(describePostError({ code: "storage/unauthorized" }), /アップロードが許可されません/);
+    assert.match(describePostError({ code: "PERMISSION_DENIED" }), /投稿が許可されません/);
+    assert.match(describePostError(new Error("PERMISSION_DENIED: Permission denied")), /投稿が許可されません/);
+    assert.match(describePostError(null), /投稿に失敗しました/);
+  });
+});

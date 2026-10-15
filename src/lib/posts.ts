@@ -18,6 +18,7 @@ import {
 } from "firebase/storage";
 import { db, storage } from "./firebase";
 import { getRosterName } from "./roster";
+import { resolveContentType } from "./media";
 import { buildAvatarResetUpdates } from "./avatarReset";
 import {
   cleanAccountNames,
@@ -87,7 +88,8 @@ async function uploadMedia(
   accountId: string,
   onProgress?: (percent: number) => void
 ): Promise<Media> {
-  const isVideo = file.type.startsWith("video/");
+  const contentType = resolveContentType(file);
+  const isVideo = contentType.startsWith("video/");
   const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
   const path = `posts/${Date.now()}_${Math.random()
     .toString(36)
@@ -95,7 +97,7 @@ async function uploadMedia(
   const sRef = storageRef(storage, path);
   // 投稿を消したときに本人が画像も消せるよう、アップロード者を記録する
   const task = uploadBytesResumable(sRef, file, {
-    contentType: file.type,
+    contentType,
     customMetadata: { owner: accountId },
   });
 
