@@ -313,7 +313,7 @@ export default function DigestPage() {
     phase === "timeline"
       ? { title: "専用SNS ダイジェスト", note: null }
       : phase === "levels"
-        ? { title: "みんなのレベル", note: "投稿するほど育つ\n文字だけ 10 ／ 写真・動画つき 25" }
+        ? { title: "みんなのレベル", note: null }
         : null;
 
   return (
