@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Logo3D from "@/components/Logo3D";
 import LevelBadge from "@/components/LevelBadge";
 import LevelIcon from "@/components/LevelIcon";
 import PostCard from "@/components/PostCard";
@@ -74,28 +75,35 @@ function wait(ms: number) {
 }
 
 /**
- * 列の先頭の画像（最初の画面に出る分）だけ、読み込みを待つ（最大 maxMs）。
- * 全部を待つと流れ始めが遅くなるので、残りは流れながら読み込む。
- * 高さが後から変わる分は、スクロール側で計測し直す。
+ * 列の中の画像・動画がすべて読み込まれるまで待つ（最大 maxMs）。
+ * 読み込み中は進み具合を onProgress で知らせる。読み込みに失敗したものも「済み」と数える
+ * （1枚の失敗で、いつまでも始まらないのを防ぐ）。
  */
-async function waitForFirstImages(root: HTMLElement | null, count = 3, maxMs = 2500) {
+async function waitForAllMedia(
+  root: HTMLElement | null,
+  onProgress?: (done: number, total: number) => void,
+  maxMs = 120000
+) {
   if (!root) return;
-  const imgs = Array.from(root.querySelectorAll("img")).slice(0, count);
+  const imgs = Array.from(root.querySelectorAll("img"));
+  const videos = Array.from(root.querySelectorAll("video"));
   imgs.forEach((i) => {
     i.loading = "eager";
   });
-  await Promise.race([
-    Promise.all(
-      imgs.map((i) =>
-        i.complete
-          ? Promise.resolve()
-          : new Promise<void>((r) => {
-              i.onload = i.onerror = () => r();
-            })
-      )
-    ),
-    wait(maxMs),
-  ]);
+  const total = imgs.length + videos.length;
+  const isDone = () =>
+    imgs.filter((i) => i.complete).length +
+    videos.filter((v) => v.readyState >= 2 || v.error).length;
+  const start = performance.now();
+  videos.forEach((v) => {
+    if (v.preload === "none") v.preload = "auto";
+  });
+  for (;;) {
+    const done = isDone();
+    onProgress?.(done, total);
+    if (done >= total || performance.now() - start > maxMs) return;
+    await wait(250);
+  }
 }
 
 type ViewerAuth = "checking" | "ready" | "error";
@@ -194,6 +202,11 @@ export default function DigestPage() {
   const [phase, setPhase] = useState<Phase>("timeline");
   const [lap, setLap] = useState(0);
   const [fading, setFading] = useState(false);
+  /** いまの場面が、画像まで含めて表示できる状態か */
+  const [sceneReady, setSceneReady] = useState(false);
+  const [mediaProgress, setMediaProgress] = useState<{ done: number; total: number } | null>(null);
+  const onSceneReady = useCallback(() => setSceneReady(true), []);
+  const onMediaProgress = useCallback((done: number, total: number) => setMediaProgress({ done, total }), []);
   const [playing, setPlaying] = useState(true);
   const [speedId, setSpeedId] = useState<SpeedId>("normal");
   const playingRef = useRef(true);
@@ -236,6 +249,8 @@ export default function DigestPage() {
       setSnap(latestRef.current);
       setLap((l) => l + 1);
     }
+    setSceneReady(false);
+    setMediaProgress(null);
     setPhase(next);
     setFading(false);
     busyRef.current = false;
@@ -345,11 +360,11 @@ export default function DigestPage() {
       </main>
     );
   }
-  if (viewerAuth === "checking" || !started) return <div className="min-h-screen bg-[#080808]" />;
+  if (viewerAuth === "checking" || !started) return <LoadingScreen message="読み込み中…" />;
 
   const heading =
     phase === "timeline"
-      ? { title: "みんなの投稿", note: null }
+      ? { title: "専用SNS ダイジェスト", note: null }
       : phase === "levels"
         ? { title: "みんなのレベル", note: "投稿するほど育つ\n文字だけ 10 ／ 写真・動画つき 25" }
         : null;
@@ -375,7 +390,10 @@ export default function DigestPage() {
         >
           <div
             key={`${lap}-${phase}`}
-            style={{ opacity: fading ? 0 : 1, transition: `opacity ${FADE_MS}ms ease` }}
+            style={{
+              opacity: fading || !sceneReady ? 0 : 1,
+              transition: `opacity ${FADE_MS}ms ease`,
+            }}
             className="absolute inset-0"
           >
             {phase === "timeline" && (
@@ -386,6 +404,8 @@ export default function DigestPage() {
                 playingRef={playingRef}
                 speedRef={speedRef}
                 onDone={() => goNext(1)}
+                onReady={onSceneReady}
+                onProgress={onMediaProgress}
               />
             )}
             {phase === "levels" && (
@@ -395,12 +415,16 @@ export default function DigestPage() {
                 playingRef={playingRef}
                 speedRef={speedRef}
                 onDone={() => goNext(1)}
+                onReady={onSceneReady}
+                onProgress={onMediaProgress}
               />
             )}
             {phase === "ranking" && (
-              <RankingScene snap={snap} playingRef={playingRef} onDone={() => goNext(1)} />
+              <RankingScene snap={snap} playingRef={playingRef} onDone={() => goNext(1)} onReady={onSceneReady} />
             )}
           </div>
+          {/* 画像の読み込みが終わるまでは、3Dロゴの読み込み画面（すぐ終わるときは出さない） */}
+          <LoadingOverlay active={!sceneReady && !fading} progress={mediaProgress} />
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 6, background: "#fff" }} />
         </div>
 
@@ -465,6 +489,68 @@ export default function DigestPage() {
 }
 
 /* ------------------------------------------------------------------ */
+/* 読み込み画面（3Dロゴ）                                                */
+/* ------------------------------------------------------------------ */
+function LoadingBody({ message, detail }: { message: string; detail?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center text-white">
+      <Logo3D variant="spin" className="h-[360px] w-[360px]" />
+      <p style={{ fontSize: 44, marginTop: 28, letterSpacing: ".2em" }}>26アカデミー</p>
+      <p style={{ fontSize: 26, marginTop: 8, color: "rgb(var(--ink-400))", letterSpacing: ".3em" }}>例会SNS</p>
+      <p style={{ fontSize: 28, marginTop: 56, color: "rgb(var(--ink-500))", letterSpacing: ".15em" }}>{message}</p>
+      {detail ? <p style={{ fontSize: 22, marginTop: 12, color: "rgb(var(--ink-500))" }}>{detail}</p> : null}
+    </div>
+  );
+}
+
+/** 起動直後（データが届くまで）の全画面の読み込み画面 */
+function LoadingScreen({ message }: { message: string }) {
+  return (
+    <main className="fixed inset-0 flex items-center justify-center bg-canvas">
+      <div style={{ transform: "scale(0.6)" }}>
+        <LoadingBody message={message} />
+      </div>
+    </main>
+  );
+}
+
+/** 場面の準備（画像の読み込み）中に、舞台の上に重ねる。短時間で終わるときは出さない */
+function LoadingOverlay({
+  active,
+  progress,
+}: {
+  active: boolean;
+  progress: { done: number; total: number } | null;
+}) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!active) {
+      setVisible(false);
+      return;
+    }
+    const t = setTimeout(() => setVisible(true), 500);
+    return () => clearTimeout(t);
+  }, [active]);
+  return (
+    <div
+      className="absolute inset-0 flex items-center justify-center bg-canvas"
+      style={{
+        opacity: active && visible ? 1 : 0,
+        pointerEvents: "none",
+        transition: `opacity ${FADE_MS}ms ease`,
+      }}
+    >
+      {active && visible ? (
+        <LoadingBody
+          message="読み込み中…"
+          detail={progress && progress.total > 0 ? `画像・動画 ${progress.done} / ${progress.total}` : undefined}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* 共通: 左の見出し                                                      */
 /* ------------------------------------------------------------------ */
 function LeftHeading({ title, note }: { title: string; note: string | null }) {
@@ -503,16 +589,29 @@ function useAutoScroll(
   playingRef: React.MutableRefObject<boolean>,
   speedRef: React.MutableRefObject<number>,
   onDone: () => void,
-  extra: number
+  extra: number,
+  onReady: () => void,
+  onProgress: (done: number, total: number) => void
 ) {
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
+  const readyRef = useRef(onReady);
+  readyRef.current = onReady;
+  const progressRef = useRef(onProgress);
+  progressRef.current = onProgress;
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) {
+      readyRef.current();
+      return;
+    }
     let cancelled = false;
     let raf = 0;
     (async () => {
-      await waitForFirstImages(colRef.current);
+      // すべて読み込めてから、表示を始めて流す（読み込み中は3Dロゴの画面）
+      await waitForAllMedia(colRef.current, (d, t) => progressRef.current(d, t));
+      if (cancelled || !colRef.current) return;
+      readyRef.current();
+      await wait(FADE_MS + 100);
       if (cancelled || !colRef.current) return;
       const col = colRef.current;
       const measure = () => Math.max(0, col.scrollHeight * SCALE - BASE_H + extra);
@@ -567,6 +666,8 @@ function TimelineScene({
   playingRef,
   speedRef,
   onDone,
+  onReady,
+  onProgress,
 }: {
   snap: Snapshot;
   lap: number;
@@ -574,11 +675,13 @@ function TimelineScene({
   playingRef: React.MutableRefObject<boolean>;
   speedRef: React.MutableRefObject<number>;
   onDone: () => void;
+  onReady: () => void;
+  onProgress: (done: number, total: number) => void;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   /** 古い投稿から新しい投稿へ向かって流す */
   const oldestFirst = useMemo(() => [...snap.posts].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)), [snap.posts]);
-  useAutoScroll(colRef, snap.posts.length > 0, 1, playingRef, speedRef, onDone, 0);
+  useAutoScroll(colRef, snap.posts.length > 0, 1, playingRef, speedRef, onDone, 0, onReady, onProgress);
   return (
     <>
       <LeftHeading title={heading.title} note={heading.note} />
@@ -624,15 +727,19 @@ function LevelsScene({
   playingRef,
   speedRef,
   onDone,
+  onReady,
+  onProgress,
 }: {
   snap: Snapshot;
   heading: { title: string; note: string | null };
   playingRef: React.MutableRefObject<boolean>;
   speedRef: React.MutableRefObject<number>;
   onDone: () => void;
+  onReady: () => void;
+  onProgress: (done: number, total: number) => void;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
-  useAutoScroll(colRef, snap.members.length > 0, LEVELS_SPEED_RATIO, playingRef, speedRef, onDone, 40);
+  useAutoScroll(colRef, snap.members.length > 0, LEVELS_SPEED_RATIO, playingRef, speedRef, onDone, 40, onReady, onProgress);
   return (
     <>
       <LeftHeading title={heading.title} note={heading.note} />
@@ -689,11 +796,17 @@ function RankingScene({
   snap,
   playingRef,
   onDone,
+  onReady,
 }: {
   snap: Snapshot;
   playingRef: React.MutableRefObject<boolean>;
   onDone: () => void;
+  onReady: () => void;
 }) {
+  useEffect(() => {
+    onReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const top = useMemo(() => {
     const all = [...snap.members].sort((a, b) => b.xp - a.xp || a.id.localeCompare(b.id));
     let prevXp = -1;
