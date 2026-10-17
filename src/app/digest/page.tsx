@@ -830,7 +830,7 @@ interface Particle {
 
 /** ドット文字（落ちてくる掛け声）。色は文字ごとに変える */
 const SHOUT_COLORS = ["#ffd23f", "#ff5c8a", "#4de1ff", "#7dff6b"];
-const SHOUT_CELL = 10; // ドット文字の1ドットの大きさ（基準px）
+const SHOUT_CELL = 7; // ドット文字の1ドットの大きさ（基準px）
 const SHOUT_FONT_PX = 22;
 /** 1位が広報戦略委員長の太田さんのときの掛け声（上から順に落ちる） */
 const SHOUT_TEXTS = ["よっ！", "太田プロ！", "広報戦略委員長！"]; // 文字を何ドット四方で描くか
@@ -849,7 +849,7 @@ interface ShoutText {
 
 /** 文字を小さく描いて、濃いところを1ドットずつ拾う（ドット絵の文字にする） */
 function rasterizeShout(text: string): { cells: [number, number][]; outline: [number, number][]; w: number; h: number } {
-  const font = `900 ${SHOUT_FONT_PX}px "PixelMplus12","Hiragino Sans","Noto Sans JP",sans-serif`;
+  const font = `500 ${SHOUT_FONT_PX}px "PixelMplus12","Hiragino Sans","Noto Sans JP",sans-serif`;
   const probe = document.createElement("canvas").getContext("2d")!;
   probe.font = font;
   const w = Math.ceil(probe.measureText(text).width) + 2;
@@ -867,7 +867,7 @@ function rasterizeShout(text: string): { cells: [number, number][]; outline: [nu
   const cells: [number, number][] = [];
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (img[(y * w + x) * 4 + 3] > 120) {
+      if (img[(y * w + x) * 4 + 3] > 100) {
         cells.push([x, y]);
         on.add(y * w + x);
       }
