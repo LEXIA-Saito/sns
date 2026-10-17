@@ -69,14 +69,19 @@ function wait(ms: number) {
 }
 
 /**
- * 列の中の画像・動画がすべて読み込まれるまで待つ（最大 maxMs）。
- * 読み込み中は進み具合を onProgress で知らせる。読み込みに失敗したものも「済み」と数える
- * （1枚の失敗で、いつまでも始まらないのを防ぐ）。
+ * 列の中の画像・動画の読み込みが終わるまで待つ。読み込み中は進み具合を onProgress で知らせる。
+ *
+ * - 画像は complete（失敗したものも「済み」）
+ * - 動画は「長さなどの情報が読めた」時点で済み（再生できる状態までは待たない。
+ *   ブラウザによっては、再生するまで先を読み込まず、永遠に終わらなくなるため）
+ * - 進み具合が stallMs のあいだ増えなければ、残りを待たずに先へ進む
+ * - 全体でも maxMs で打ち切る
  */
 async function waitForAllMedia(
   root: HTMLElement | null,
   onProgress?: (done: number, total: number) => void,
-  maxMs = 120000
+  stallMs = 6000,
+  maxMs = 60000
 ) {
   if (!root) return;
   const imgs = Array.from(root.querySelectorAll("img"));
@@ -85,17 +90,22 @@ async function waitForAllMedia(
     i.loading = "eager";
   });
   const total = imgs.length + videos.length;
-  const isDone = () =>
+  const countDone = () =>
     imgs.filter((i) => i.complete).length +
-    videos.filter((v) => v.readyState >= 2 || v.error).length;
+    videos.filter((v) => v.readyState >= 1 || Boolean(v.error)).length;
   const start = performance.now();
-  videos.forEach((v) => {
-    if (v.preload === "none") v.preload = "auto";
-  });
+  let lastDone = -1;
+  let lastChange = start;
   for (;;) {
-    const done = isDone();
+    const done = countDone();
     onProgress?.(done, total);
-    if (done >= total || performance.now() - start > maxMs) return;
+    const now = performance.now();
+    if (done >= total) return;
+    if (done !== lastDone) {
+      lastDone = done;
+      lastChange = now;
+    }
+    if (now - lastChange > stallMs || now - start > maxMs) return;
     await wait(250);
   }
 }
