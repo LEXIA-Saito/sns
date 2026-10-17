@@ -45,8 +45,8 @@ const BASE_H = 1080;
 /** スクロールする列の拡大率と幅（基準サイズ上のpx） */
 const SCALE = 1.75;
 const COL_W = 576;
-const HOLD_START = 2.5; // スクロール前の静止（秒）
-const HOLD_END = 3; // スクロール後の静止（秒）
+const HOLD_START = 0.8; // スクロール前の静止（秒）
+const HOLD_END = 2.5; // スクロール後の静止（秒）
 const FADE_MS = 600;
 const TOP_N = 10;
 
@@ -73,10 +73,14 @@ function wait(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
 
-/** 列の中の画像がそろうまで待つ（最大 maxMs）。途中で高さが変わってスクロールがずれるのを防ぐ */
-async function waitForImages(root: HTMLElement | null, maxMs = 20000) {
+/**
+ * 列の先頭の画像（最初の画面に出る分）だけ、読み込みを待つ（最大 maxMs）。
+ * 全部を待つと流れ始めが遅くなるので、残りは流れながら読み込む。
+ * 高さが後から変わる分は、スクロール側で計測し直す。
+ */
+async function waitForFirstImages(root: HTMLElement | null, count = 3, maxMs = 2500) {
   if (!root) return;
-  const imgs = Array.from(root.querySelectorAll("img"));
+  const imgs = Array.from(root.querySelectorAll("img")).slice(0, count);
   imgs.forEach((i) => {
     i.loading = "eager";
   });
@@ -508,27 +512,38 @@ function useAutoScroll(
     let cancelled = false;
     let raf = 0;
     (async () => {
-      await waitForImages(colRef.current);
-      await wait(400);
+      await waitForFirstImages(colRef.current);
       if (cancelled || !colRef.current) return;
       const col = colRef.current;
-      const total = Math.max(0, col.scrollHeight * SCALE - BASE_H + extra);
+      const measure = () => Math.max(0, col.scrollHeight * SCALE - BASE_H + extra);
+      let total = measure();
       let elapsed = 0; // 一時停止中は進めない
       let last = performance.now();
-      const scrollSec = () => total / (speedRef.current * speedFactor);
+      let sinceMeasure = 0;
+      let endHold = -1; // 末尾に着いてからの静止時間（-1 = まだ着いていない）
       const step = (now: number) => {
         if (cancelled) return;
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         if (playingRef.current) elapsed += dt;
-        const sec = scrollSec();
-        const into = Math.max(0, elapsed - HOLD_START);
-        const y = Math.min(total, into * speedRef.current * speedFactor);
+        // 流れながら画像が読み込まれて高さが増えることがあるので、ときどき計測し直す
+        sinceMeasure += dt;
+        if (sinceMeasure > 0.5) {
+          sinceMeasure = 0;
+          total = measure();
+        }
+        const speed = speedRef.current * speedFactor;
+        const y = Math.min(total, Math.max(0, elapsed - HOLD_START) * speed);
         col.style.transform = `translate3d(0, ${-y}px, 0) scale(${SCALE})`;
-        if (elapsed >= HOLD_START + sec + HOLD_END) {
-          cancelled = true;
-          doneRef.current();
-          return;
+        if (y >= total - 0.5) {
+          if (playingRef.current) endHold = endHold < 0 ? 0 : endHold + dt;
+          if (endHold >= HOLD_END) {
+            cancelled = true;
+            doneRef.current();
+            return;
+          }
+        } else {
+          endHold = -1;
         }
         raf = requestAnimationFrame(step);
       };
@@ -561,6 +576,8 @@ function TimelineScene({
   onDone: () => void;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
+  /** 古い投稿から新しい投稿へ向かって流す */
+  const oldestFirst = useMemo(() => [...snap.posts].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)), [snap.posts]);
   useAutoScroll(colRef, snap.posts.length > 0, 1, playingRef, speedRef, onDone, 0);
   return (
     <>
@@ -582,7 +599,7 @@ function TimelineScene({
           style={{ width: COL_W, transformOrigin: "top left", transform: `scale(${SCALE})`, willChange: "transform" }}
         >
           <div className="space-y-4 px-4 py-6">
-            {snap.posts.map((p) => (
+            {oldestFirst.map((p) => (
               <PostCard
                 key={p.id}
                 post={p}
