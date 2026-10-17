@@ -13,16 +13,11 @@ import {
   PixelPause,
   PixelPlay,
 } from "@/components/PixelIcon";
-import { inMemoryPersistence, onAuthStateChanged, setPersistence, signInAnonymously } from "firebase/auth";
-import { getAuthOrNull } from "@/lib/firebase";
 import type { Post } from "@/lib/types";
 import type { Session } from "@/lib/session";
-import { subscribePosts, subscribeAccountNames } from "@/lib/posts";
-import { applyAccountNames, type AccountNames } from "@/lib/accountNames";
-import { filterVisiblePosts } from "@/lib/moderation";
 import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 import { ACCOUNT_ROSTER } from "@/lib/roster";
-import { levelFromXp, tierFromLevel, xpByAccount } from "@/lib/level";
+import { levelFromXp, tierFromLevel } from "@/lib/level";
 
 /**
  * 運営専用「ダイジェスト自動再生」ページ。
@@ -110,85 +105,56 @@ async function waitForAllMedia(
   }
 }
 
-type ViewerAuth = "checking" | "ready" | "error";
-
 /**
- * ID・パスワードなしで開けるページ。投稿の読み取りには Firebase の匿名ログインを使う
- * （端末には保存しない。カードでログイン済みの端末ではそのログインをそのまま使う）。
+ * 例会の投稿は締め切り済みなので、投稿・名前・経験値は静的ファイル（public/digest/data.json）に焼き込んである。
+ * 写真・動画は縮小した画像（public/digest/img/）。動画は最初の1コマを静止画にしている。
+ * データベースにも保管先（Storage）にも接続しない（読み取りの負荷・通信量・ログインが要らない）。
  */
-function useViewerAuth(): ViewerAuth {
-  const [state, setState] = useState<ViewerAuth>("checking");
-  useEffect(() => {
-    const auth = getAuthOrNull();
-    if (!auth) {
-      setState("error");
-      return;
-    }
-    let started = false;
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setState("ready");
-        return;
-      }
-      if (started) return;
-      started = true;
-      try {
-        await setPersistence(auth, inMemoryPersistence);
-        await signInAnonymously(auth);
-      } catch (e) {
-        console.error("匿名ログインに失敗:", e);
-        setState("error");
-      }
-    });
-    return () => unsub();
-  }, []);
-  return state;
+interface DigestData {
+  generatedAt: number;
+  posts: Post[];
+  xp: Record<string, number>;
+  names: Record<string, string>;
 }
 
 export default function DigestPage() {
-  const viewerAuth = useViewerAuth();
-  // ---- ライブデータ ----
-  const [rawPosts, setRawPosts] = useState<Post[]>([]);
-  const [accountNames, setAccountNames] = useState<AccountNames>({});
-
-  /** 投稿・名前が、それぞれ最初に届いたか */
-  const [loaded, setLoaded] = useState({ posts: false, names: false });
+  // ---- 静的データ ----
+  const [data, setData] = useState<DigestData | null>(null);
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
-    if (viewerAuth !== "ready") return;
-    const u1 = subscribePosts((list) => {
-      setRawPosts(list);
-      setLoaded((l) => (l.posts ? l : { ...l, posts: true }));
-    });
-    const u2 = subscribeAccountNames((names) => {
-      setAccountNames(names);
-      setLoaded((l) => (l.names ? l : { ...l, names: true }));
-    });
+    let cancelled = false;
+    fetch("/digest/data.json")
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json() as Promise<DigestData>;
+      })
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch((e) => {
+        console.error("データを読み込めません:", e);
+        if (!cancelled) setLoadError(true);
+      });
     return () => {
-      u1();
-      u2();
+      cancelled = true;
     };
-  }, [viewerAuth]);
-  const dataReady = loaded.posts && loaded.names;
-
-  const named = useMemo(() => applyAccountNames(rawPosts, accountNames), [rawPosts, accountNames]);
+  }, []);
 
   const latest = useMemo<Snapshot>(() => {
-    // LOM全員の投稿を流す（運営が非表示にした投稿だけ除く）。
-    // /projector のようにアカデミーメンバーだけには絞らない
-    const visible = filterVisiblePosts(named);
-    const xp = xpByAccount(named);
+    if (!data) return { posts: [], xp: {}, members: [], now: Date.now() };
     const members = Object.entries(ACCOUNT_ROSTER)
       .filter(([id]) => id !== ADMIN_ACCOUNT_ID && id !== "26-085")
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([id, name]) => ({
         id,
-        name: (accountNames[id] ?? name).replace("　", " "),
-        xp: xp[id] ?? 0,
+        name: (data.names[id] ?? name).replace("　", " "),
+        xp: data.xp[id] ?? 0,
       }));
-    return { posts: visible, xp, members, now: Date.now() };
-  }, [named, accountNames]);
+    return { posts: data.posts, xp: data.xp, members, now: Date.now() };
+  }, [data]);
   const latestRef = useRef(latest);
   latestRef.current = latest;
+  const dataReady = data !== null;
 
   // ---- 再生状態 ----
   const [snap, setSnap] = useState<Snapshot>(latest);
@@ -216,16 +182,6 @@ export default function DigestPage() {
       setStarted(true);
     }
   }, [dataReady, started]);
-  // 万一どれかが届かなくても、8秒後には届いた分で再生を始める
-  useEffect(() => {
-    if (viewerAuth !== "ready" || started) return;
-    const t = setTimeout(() => {
-      setSnap(latestRef.current);
-      setStarted(true);
-    }, 8000);
-    return () => clearTimeout(t);
-  }, [viewerAuth, started]);
-
   const phaseRef = useRef<Phase>("timeline");
   phaseRef.current = phase;
   const busyRef = useRef(false);
@@ -341,19 +297,17 @@ export default function DigestPage() {
     };
   }, []);
 
-  if (viewerAuth === "error") {
+  if (loadError) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#080808] px-6 text-center text-white">
-        <p className="text-lg font-bold">投稿を読み込めませんでした</p>
+        <p className="text-lg font-bold">データを読み込めませんでした</p>
         <p className="max-w-md text-sm leading-relaxed text-white/60">
           画面を再読み込みしてください。それでも表示されない場合は、運営に連絡してください。
-          <br />
-          （運営向け: Firebase Authentication で「匿名」のログインが有効か確認してください）
         </p>
       </main>
     );
   }
-  if (viewerAuth === "checking" || !started) return <LoadingScreen message="読み込み中…" />;
+  if (!started) return <LoadingScreen message="読み込み中…" />;
 
   const heading =
     phase === "timeline"
