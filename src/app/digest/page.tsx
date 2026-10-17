@@ -74,14 +74,14 @@ function wait(ms: number) {
  * - 画像は complete（失敗したものも「済み」）
  * - 動画は「長さなどの情報が読めた」時点で済み（再生できる状態までは待たない。
  *   ブラウザによっては、再生するまで先を読み込まず、永遠に終わらなくなるため）
- * - 進み具合が stallMs のあいだ増えなければ、残りを待たずに先へ進む
- * - 全体でも maxMs で打ち切る
+ * - 進み具合が stallMs（20秒）のあいだ増えなければ、残りを待たずに先へ進む
+ * - 全体でも maxMs（4分）で打ち切る
  */
 async function waitForAllMedia(
   root: HTMLElement | null,
   onProgress?: (done: number, total: number) => void,
-  stallMs = 6000,
-  maxMs = 60000
+  stallMs = 20000,
+  maxMs = 240000
 ) {
   if (!root) return;
   const imgs = Array.from(root.querySelectorAll("img"));
@@ -484,14 +484,34 @@ export default function DigestPage() {
 /* ------------------------------------------------------------------ */
 /* 読み込み画面（3Dロゴ）                                                */
 /* ------------------------------------------------------------------ */
-function LoadingBody({ message, detail }: { message: string; detail?: string }) {
+function LoadingBody({
+  message,
+  progress,
+}: {
+  message: string;
+  progress?: { done: number; total: number } | null;
+}) {
+  const hasGauge = Boolean(progress && progress.total > 0);
+  const pct = hasGauge ? Math.min(100, Math.floor((progress!.done / progress!.total) * 100)) : 0;
   return (
     <div className="flex flex-col items-center justify-center text-center text-white">
       <Logo3D variant="spin" className="h-[360px] w-[360px]" />
       <p style={{ fontSize: 44, marginTop: 28, letterSpacing: ".2em" }}>26アカデミー</p>
       <p style={{ fontSize: 26, marginTop: 8, color: "rgb(var(--ink-400))", letterSpacing: ".3em" }}>例会SNS</p>
       <p style={{ fontSize: 28, marginTop: 56, color: "rgb(var(--ink-500))", letterSpacing: ".15em" }}>{message}</p>
-      {detail ? <p style={{ fontSize: 22, marginTop: 12, color: "rgb(var(--ink-500))" }}>{detail}</p> : null}
+      {hasGauge ? (
+        <div style={{ marginTop: 22, width: 720 }}>
+          <div style={{ height: 22, border: "3px solid #fff", padding: 3 }}>
+            <div
+              style={{ height: "100%", width: `${pct}%`, background: "#fff", transition: "width 250ms linear" }}
+            />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 24, color: "rgb(var(--ink-400))" }}>
+            <span>画像・動画 {progress!.done} / {progress!.total}</span>
+            <span style={{ color: "#fff" }}>{pct}%</span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -534,10 +554,7 @@ function LoadingOverlay({
       }}
     >
       {active && visible ? (
-        <LoadingBody
-          message="読み込み中…"
-          detail={progress && progress.total > 0 ? `画像・動画 ${progress.done} / ${progress.total}` : undefined}
-        />
+        <LoadingBody message="読み込み中…" progress={progress} />
       ) : null}
     </div>
   );
