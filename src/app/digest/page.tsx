@@ -137,12 +137,26 @@ export default function DigestPage() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
 
+  /** 投稿・設定・表示許可・名前の4つが、それぞれ最初に届いたか */
+  const [loaded, setLoaded] = useState({ posts: false, settings: false, allow: false, names: false });
   useEffect(() => {
     if (viewerAuth !== "ready") return;
-    const u1 = subscribePosts(setRawPosts);
-    const u2 = subscribeSettings(setSettings);
-    const u3 = subscribeTimelineAccounts(setTimelineAllow);
-    const u4 = subscribeAccountNames(setAccountNames);
+    const u1 = subscribePosts((list) => {
+      setRawPosts(list);
+      setLoaded((l) => (l.posts ? l : { ...l, posts: true }));
+    });
+    const u2 = subscribeSettings((st) => {
+      setSettings(st);
+      setLoaded((l) => (l.settings ? l : { ...l, settings: true }));
+    });
+    const u3 = subscribeTimelineAccounts((allow) => {
+      setTimelineAllow(allow);
+      setLoaded((l) => (l.allow ? l : { ...l, allow: true }));
+    });
+    const u4 = subscribeAccountNames((names) => {
+      setAccountNames(names);
+      setLoaded((l) => (l.names ? l : { ...l, names: true }));
+    });
     return () => {
       u1();
       u2();
@@ -150,6 +164,7 @@ export default function DigestPage() {
       u4();
     };
   }, [viewerAuth]);
+  const dataReady = loaded.posts && loaded.settings && loaded.allow && loaded.names;
 
   const named = useMemo(() => applyAccountNames(rawPosts, accountNames), [rawPosts, accountNames]);
 
@@ -183,16 +198,23 @@ export default function DigestPage() {
   speedRef.current = SPEEDS.find((s) => s.id === speedId)!.px;
   const snapRef = useRef(snap);
   snapRef.current = snap;
-  /** 起動直後に最初のデータが届いたら、1周目の頭を最新にする */
-  const firstLoadedRef = useRef(false);
+  /** データがそろうまで再生しない（起動直後の空の状態で「投稿なし」と判断して飛ばさないため） */
+  const [started, setStarted] = useState(false);
   useEffect(() => {
-    if (!firstLoadedRef.current && (rawPosts.length > 0 || Object.keys(ACCOUNT_ROSTER).length > 0)) {
-      if (rawPosts.length > 0) {
-        firstLoadedRef.current = true;
-        setSnap(latestRef.current);
-      }
+    if (dataReady && !started) {
+      setSnap(latestRef.current);
+      setStarted(true);
     }
-  }, [rawPosts.length]);
+  }, [dataReady, started]);
+  // 万一どれかが届かなくても、8秒後には届いた分で再生を始める
+  useEffect(() => {
+    if (viewerAuth !== "ready" || started) return;
+    const t = setTimeout(() => {
+      setSnap(latestRef.current);
+      setStarted(true);
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [viewerAuth, started]);
 
   const phaseRef = useRef<Phase>("timeline");
   phaseRef.current = phase;
@@ -217,11 +239,11 @@ export default function DigestPage() {
 
   // 投稿がひとつも無いときはタイムラインを飛ばす
   useEffect(() => {
-    if (phase === "timeline" && snap.posts.length === 0 && playing) {
+    if (started && phase === "timeline" && snap.posts.length === 0 && playing) {
       const t = setTimeout(() => goNext(1), 1500);
       return () => clearTimeout(t);
     }
-  }, [phase, snap.posts.length, playing, goNext, lap]);
+  }, [started, phase, snap.posts.length, playing, goNext, lap]);
 
   // ---- 画面に合わせた拡縮 ----
   const [fit, setFit] = useState(1);
@@ -319,7 +341,7 @@ export default function DigestPage() {
       </main>
     );
   }
-  if (viewerAuth === "checking") return <div className="min-h-screen bg-[#080808]" />;
+  if (viewerAuth === "checking" || !started) return <div className="min-h-screen bg-[#080808]" />;
 
   const heading =
     phase === "timeline"
