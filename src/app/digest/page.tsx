@@ -50,11 +50,11 @@ const HOLD_END = 2.5; // スクロール後の静止（秒）
 const FADE_MS = 600;
 const TOP_N = 10;
 
-/** 投稿のスクロール速度（基準px/秒）。標準は1件あたり約4.4秒 */
+/** 投稿のスクロール速度（基準px/秒）。標準は1件あたり約6秒 */
 const SPEEDS = [
-  { id: "slow", label: "ゆっくり", px: 160 },
-  { id: "normal", label: "標準", px: 245 },
-  { id: "fast", label: "速い", px: 400 },
+  { id: "slow", label: "ゆっくり", px: 120 },
+  { id: "normal", label: "標準", px: 180 },
+  { id: "fast", label: "速い", px: 300 },
 ] as const;
 type SpeedId = (typeof SPEEDS)[number]["id"];
 /** レベル一覧は1行が小さいので、投稿より遅めにそろえる */
@@ -198,7 +198,7 @@ export default function DigestPage() {
   const [speedId, setSpeedId] = useState<SpeedId>("normal");
   const playingRef = useRef(true);
   playingRef.current = playing;
-  const speedRef = useRef<number>(245);
+  const speedRef = useRef<number>(180);
   speedRef.current = SPEEDS.find((s) => s.id === speedId)!.px;
   const snapRef = useRef(snap);
   snapRef.current = snap;
