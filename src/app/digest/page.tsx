@@ -621,6 +621,59 @@ function useAutoScroll(
 }
 
 /* ------------------------------------------------------------------ */
+/* 動画: 画面に見えているものだけ、音なしでくり返し再生する                 */
+/* ------------------------------------------------------------------ */
+function useVideoAutoplay(
+  colRef: React.RefObject<HTMLDivElement>,
+  playingRef: React.MutableRefObject<boolean>
+) {
+  useEffect(() => {
+    const col = colRef.current;
+    if (!col) return;
+    const visible = new Set<HTMLVideoElement>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const v = e.target as HTMLVideoElement;
+          if (e.isIntersecting) visible.add(v);
+          else visible.delete(v);
+        }
+      },
+      { threshold: 0.2 }
+    );
+    const vids = Array.from(col.querySelectorAll("video"));
+    for (const v of vids) {
+      // 会場で流しっぱなしにするので、操作部品は出さず、音は消してくり返す
+      v.muted = true;
+      v.defaultMuted = true;
+      v.setAttribute("muted", "");
+      v.loop = true;
+      v.controls = false;
+      v.playsInline = true;
+      v.preload = "auto";
+      v.style.pointerEvents = "none";
+      // 読み込み前の最初の1コマ（同じ名前の静止画）
+      if (!v.poster) v.poster = v.src.replace("/digest/video/", "/digest/img/").replace(/\.mp4$/, ".jpg");
+      io.observe(v);
+    }
+    // 見えているあいだだけ再生（一時停止中は止める）
+    const timer = setInterval(() => {
+      for (const v of vids) {
+        const shouldPlay = visible.has(v) && playingRef.current;
+        if (shouldPlay && v.paused) v.play().catch(() => {});
+        else if (!shouldPlay && !v.paused) v.pause();
+      }
+    }, 400);
+    return () => {
+      clearInterval(timer);
+      io.disconnect();
+      vids.forEach((v) => v.pause());
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+/* ------------------------------------------------------------------ */
 /* 1. みんなの投稿                                                       */
 /* ------------------------------------------------------------------ */
 function TimelineScene({
@@ -646,6 +699,7 @@ function TimelineScene({
   /** 古い投稿から新しい投稿へ向かって流す */
   const oldestFirst = useMemo(() => [...snap.posts].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0)), [snap.posts]);
   useAutoScroll(colRef, snap.posts.length > 0, 1, playingRef, speedRef, onDone, 0, onReady, onProgress);
+  useVideoAutoplay(colRef, playingRef);
   return (
     <>
       <LeftHeading title={heading.title} note={heading.note} />
