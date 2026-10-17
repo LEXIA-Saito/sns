@@ -828,23 +828,28 @@ interface Particle {
   phase: number;
 }
 
-/** ドット文字（落ちてくる掛け声）。色は文字ごとに変える */
-const SHOUT_COLORS = ["#ffd23f", "#ff5c8a", "#4de1ff", "#7dff6b"];
+/** ドット文字の1文字ずつの演出。文字ごとに落ち方が違う */
+type GlyphEffect = "drop" | "sway" | "tumble" | "assemble" | "squash" | "hop" | "slam";
+const GLYPH_EFFECTS: GlyphEffect[] = ["drop", "sway", "tumble", "assemble", "squash", "hop", "slam"];
+const GLYPH_COLORS = ["#ffd23f", "#ff5c8a", "#4de1ff", "#7dff6b", "#b77dff", "#ff9a3c", "#ffffff"];
 const SHOUT_CELL = 7; // ドット文字の1ドットの大きさ（基準px）
-const SHOUT_FONT_PX = 22;
-/** 1位が広報戦略委員長の太田さんのときの掛け声（上から順に落ちる） */
-const SHOUT_TEXTS = ["よっ！", "太田プロ！", "広報戦略委員長！"]; // 文字を何ドット四方で描くか
+const SHOUT_FONT_PX = 32; // 文字を何ドット四方で描くか（画数の多い字がつぶれない細かさ）
+/** 1位が広報戦略委員長の太田さんのとき、1文字ずつ落ちてくる */
+const SHOUT_CHARS = ["広", "報", "戦", "略", "委", "員", "長"];
 
-interface ShoutText {
+interface Glyph {
   cells: [number, number][];
   outline: [number, number][];
   w: number;
   h: number;
   color: string;
-  x: number; // 左端（px）
+  effect: GlyphEffect;
+  x: number; // 落ち着く位置の左端（px）
   top: number; // 落ち着く位置の上端（px）
-  start: number; // 落ち始める時刻（秒）
-  broke: boolean;
+  start: number; // 登場の時刻（秒）
+  delays: number[]; // 「ドットが降って組み上がる」演出の、ドットごとの遅れ
+  outlineDelays: number[];
+  slammed: boolean;
 }
 
 /** 文字を小さく描いて、濃いところを1ドットずつ拾う（ドット絵の文字にする） */
@@ -894,13 +899,13 @@ function PixelCelebration({
   active,
   duration,
   playingRef,
-  shout,
+  glyphChars,
 }: {
   active: boolean;
   duration: number;
   playingRef: React.MutableRefObject<boolean>;
-  /** 上から順に落ちてくる掛け声（省略可） */
-  shout?: string[];
+  /** 1文字ずつ落ちてくるドット文字（省略可） */
+  glyphChars?: string[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -912,8 +917,10 @@ function PixelCelebration({
     ctx.imageSmoothingEnabled = false;
     const W = BASE_W;
     const H = BASE_H;
+    const C = SHOUT_CELL;
     const rand = (a: number, b: number) => a + Math.random() * (b - a);
     const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+    const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
     const parts: Particle[] = [];
 
     const confetti = (n: number, atTop = true) => {
@@ -926,7 +933,7 @@ function PixelCelebration({
           g: rand(60, 140),
           life: 0,
           max: rand(4, 8),
-          w: DOT * (Math.random() < 0.3 ? 1 : 1),
+          w: DOT,
           h: DOT * (Math.random() < 0.35 ? 2 : 1),
           color: pick(CONFETTI_COLORS),
           wobble: rand(40, 140),
@@ -934,9 +941,7 @@ function PixelCelebration({
         });
       }
     };
-    const firework = () => {
-      const cx = rand(260, W - 260);
-      const cy = rand(160, 560);
+    const firework = (cx = rand(260, W - 260), cy = rand(160, 560)) => {
       const color = pick(CONFETTI_COLORS.slice(1));
       const n = 44;
       for (let i = 0; i < n; i++) {
@@ -960,38 +965,94 @@ function PixelCelebration({
     };
 
     let elapsed = 0;
-    // 掛け声のドット文字（1つずつ時間をずらして落とす）
-    const shouts: ShoutText[] = [];
-    if (shout && shout.length > 0) {
-      const gap = 30;
-      const rasters = shout.map((t) => rasterizeShout(t));
-      const heights = rasters.map((r) => r.h * SHOUT_CELL);
-      const total = heights.reduce((a, b) => a + b, 0) + gap * (rasters.length - 1);
-      let top = Math.max(120, (H - total) / 2);
+    // ---- ドット文字: 横一列に並ぶ。1文字ずつ、違う落ち方で登場する ----
+    const glyphs: Glyph[] = [];
+    if (glyphChars && glyphChars.length > 0) {
+      const gap = 6;
+      const rasters = glyphChars.map((ch) => rasterizeShout(ch));
+      const totalW = rasters.reduce((a, r) => a + r.w * C, 0) + gap * (rasters.length - 1);
+      let x = Math.round((W - totalW) / 2 / C) * C;
+      const top = Math.round(((H - (SHOUT_FONT_PX + 6) * C) / 2 + 60) / C) * C;
       rasters.forEach((r, i) => {
-        shouts.push({
+        glyphs.push({
           ...r,
-          color: SHOUT_COLORS[i % SHOUT_COLORS.length],
-          x: Math.round((W - r.w * SHOUT_CELL) / 2 / SHOUT_CELL) * SHOUT_CELL,
+          color: GLYPH_COLORS[i % GLYPH_COLORS.length],
+          effect: GLYPH_EFFECTS[i % GLYPH_EFFECTS.length],
+          x,
           top,
-          start: 0.5 + i * 1.5,
-          broke: false,
+          start: 0.4 + i * 0.6,
+          delays: r.cells.map(() => Math.random() * 1.0),
+          outlineDelays: r.outline.map(() => Math.random() * 1.0),
+          slammed: false,
         });
-        top += heights[i] + gap;
+        x += r.w * C + gap;
       });
     }
-    const FALL = 0.8; // 落ちるのにかかる秒数
-    const BREAK_AT = Math.max(duration - 2, 4); // この時刻に、文字がばらばらに崩れて落ちる
-    const shoutY = (t: ShoutText) => {
-      const hpx = t.h * SHOUT_CELL;
-      const u = Math.min(1, Math.max(0, (elapsed - t.start) / FALL));
-      let y = -hpx + (t.top + hpx) * u * u;
-      if (u >= 1) {
-        const since = elapsed - t.start - FALL;
-        // 着地でぽんと弾む
-        y = t.top - Math.abs(Math.sin(since * 9)) * 34 * Math.exp(-since * 4.5);
+    const BREAK_AT = Math.max(duration - 2, 4); // この時刻に、全部の文字がばらばらに崩れて落ちる
+    let broke = false;
+    const land = (since: number, amp = 34, k = 4.5, f = 9) => -Math.abs(Math.sin(since * f)) * amp * Math.exp(-since * k);
+    let shake = 0;
+
+    /** 文字ごとの動き。位置のずれ・回転（90度刻み）・縦のつぶれ具合を返す */
+    const pose = (g: Glyph, e: number) => {
+      const hpx = g.h * C;
+      let x = g.x;
+      let y = g.top;
+      let rot = 0;
+      let sy = 1;
+      switch (g.effect) {
+        case "drop": {
+          const u = clamp01(e / 0.7);
+          y = u < 1 ? -hpx + (g.top + hpx) * u * u : g.top + land(e - 0.7);
+          break;
+        }
+        case "sway": {
+          // 木の葉のようにゆらゆら
+          const dur = 1.3;
+          const u = clamp01(e / dur);
+          x = g.x + Math.sin(e * 8) * 150 * (1 - u);
+          y = u < 1 ? -hpx + (g.top + hpx) * Math.pow(u, 1.3) : g.top + land(e - dur, 14, 6, 8);
+          break;
+        }
+        case "tumble": {
+          // くるくる回りながら（90度ずつ）
+          const dur = 0.95;
+          const u = clamp01(e / dur);
+          rot = u < 1 ? Math.floor(u * 8) % 4 : 0;
+          y = u < 1 ? -hpx + (g.top + hpx) * u * u : g.top + land(e - dur, 28);
+          break;
+        }
+        case "squash": {
+          // ぺちゃっとつぶれて、ぷるんと戻る
+          const dur = 0.55;
+          const u = clamp01(e / dur);
+          if (u < 1) {
+            y = -hpx + (g.top + hpx) * u * u;
+          } else {
+            const sn = e - dur;
+            sy = 1 - 0.4 * Math.exp(-sn * 3.5) * Math.abs(Math.cos(sn * 8));
+          }
+          break;
+        }
+        case "hop": {
+          // 左から、ぴょんぴょん跳ねてやってくる
+          const dur = 1.2;
+          const u = clamp01(e / dur);
+          x = g.x - (1 - u) * 1000;
+          y = g.top - Math.abs(Math.sin(u * Math.PI * 3)) * 170 * (1 - u * 0.5);
+          break;
+        }
+        case "slam": {
+          // 一気に叩きつける（画面が揺れる）
+          const dur = 0.3;
+          const u = clamp01(e / dur);
+          y = u < 1 ? -hpx + (g.top + hpx) * u * u * u : g.top;
+          break;
+        }
+        default:
+          break;
       }
-      return y;
+      return { x, y: Math.round(y / C) * C, rot, sy };
     };
 
     // はじめに一気に降らせ、真ん中で大きな花火を上げる
@@ -1027,43 +1088,96 @@ function PixelCelebration({
         for (let i = parts.length - 1; i >= 0; i--) {
           if (parts[i].life > parts[i].max || parts[i].y > H + 40) parts.splice(i, 1);
         }
+        // 叩きつけが着地した瞬間に、画面を揺らして花火を上げる
+        for (const g of glyphs) {
+          if (g.effect === "slam" && !g.slammed && elapsed - g.start >= 0.3) {
+            g.slammed = true;
+            shake = 1;
+            firework(g.x + (g.w * C) / 2, g.top);
+          }
+        }
+        shake = Math.max(0, shake - dt * 2.2);
       }
+      ctx.save();
       ctx.clearRect(0, 0, W, H);
+      if (shake > 0) {
+        ctx.translate(Math.round((Math.random() - 0.5) * 36 * shake / C) * C, Math.round((Math.random() - 0.5) * 28 * shake / C) * C);
+      }
       if (flash > 0) {
         ctx.fillStyle = `rgba(255,255,255,${flash * 0.55})`;
         ctx.fillRect(0, 0, W, H);
       }
-      // 掛け声: 落ちてきて弾み、しばらく見せてから、ばらばらに崩れて落ちる
-      for (const t of shouts) {
-        if (elapsed < t.start || t.broke) continue;
-        const y = shoutY(t);
-        if (elapsed >= BREAK_AT) {
-          t.broke = true;
-          for (const [cx, cy] of t.cells) {
+
+      // 崩れる: 全部の文字を、ドットのばらばらな粒にして落とす
+      if (!broke && glyphs.length > 0 && elapsed >= BREAK_AT) {
+        broke = true;
+        for (const g of glyphs) {
+          for (const [cx, cy] of g.cells) {
             parts.push({
-              x: t.x + cx * SHOUT_CELL,
-              y: y + cy * SHOUT_CELL,
-              vx: rand(-160, 160),
-              vy: rand(-260, 40),
+              x: g.x + cx * C,
+              y: g.top + cy * C,
+              vx: rand(-200, 200),
+              vy: rand(-300, 40),
               g: 900,
               life: 0,
               max: rand(1.0, 1.9),
-              w: SHOUT_CELL,
-              h: SHOUT_CELL,
-              color: t.color,
+              w: C,
+              h: C,
+              color: g.color,
               wobble: 0,
               phase: 0,
             });
           }
-          continue;
         }
-        ctx.fillStyle = "#000";
-        for (const [ox, oy] of t.outline) {
-          ctx.fillRect(t.x + ox * SHOUT_CELL, Math.round(y / SHOUT_CELL) * SHOUT_CELL + oy * SHOUT_CELL, SHOUT_CELL, SHOUT_CELL);
-        }
-        ctx.fillStyle = t.color;
-        for (const [cx, cy] of t.cells) {
-          ctx.fillRect(t.x + cx * SHOUT_CELL, Math.round(y / SHOUT_CELL) * SHOUT_CELL + cy * SHOUT_CELL, SHOUT_CELL, SHOUT_CELL);
+      }
+      if (!broke) {
+        for (const g of glyphs) {
+          const e = elapsed - g.start;
+          if (e < 0) continue;
+          if (g.effect === "assemble") {
+            // ドットが1粒ずつ降ってきて、文字に組み上がる
+            const cellAt = (cx: number, cy: number, d: number) => {
+              const u = clamp01((e - d) / 0.55);
+              if (u <= 0) return null;
+              const ty = g.top + cy * C;
+              return [g.x + cx * C, Math.round((ty - (1 - u * u) * (ty + 300)) / C) * C] as const;
+            };
+            ctx.fillStyle = "#000";
+            g.outline.forEach(([ox, oy], j) => {
+              const pos = cellAt(ox, oy, g.outlineDelays[j]);
+              if (pos) ctx.fillRect(pos[0], pos[1], C, C);
+            });
+            ctx.fillStyle = g.color;
+            g.cells.forEach(([cx, cy], j) => {
+              const pos = cellAt(cx, cy, g.delays[j]);
+              if (pos) ctx.fillRect(pos[0], pos[1], C, C);
+            });
+            continue;
+          }
+          const ps = pose(g, e);
+          const hpx = g.h * C;
+          const wpx = g.w * C;
+          const mapCell = (cx: number, cy: number): [number, number] => {
+            let px = cx - g.w / 2;
+            let py = cy - g.h / 2;
+            if (ps.rot === 1) [px, py] = [-py, px];
+            else if (ps.rot === 2) [px, py] = [-px, -py];
+            else if (ps.rot === 3) [px, py] = [py, -px];
+            const x = ps.x + wpx / 2 + px * C;
+            let y = ps.y + hpx / 2 + py * C;
+            if (ps.sy !== 1) y = ps.y + hpx - (hpx - (cy * C)) * ps.sy; // 下端をそろえてつぶす
+            return [Math.round(x / C) * C, Math.round(y / C) * C];
+          };
+          ctx.fillStyle = "#000";
+          for (const [ox, oy] of g.outline) {
+            const [x, y] = mapCell(ox, oy);
+            ctx.fillRect(x, y, C, C);
+          }
+          ctx.fillStyle = g.color;
+          for (const [cx, cy] of g.cells) {
+            const [x, y] = mapCell(cx, cy);
+            ctx.fillRect(x, y, C, C);
+          }
         }
       }
       for (const p of parts) {
@@ -1073,12 +1187,13 @@ function PixelCelebration({
         ctx.fillStyle = p.color;
         ctx.fillRect(Math.floor(p.x / DOT) * DOT, Math.floor(p.y / DOT) * DOT, p.w, p.h);
       }
+      ctx.restore();
       if (elapsed >= duration + 4 && parts.length === 0) return;
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [active, duration, playingRef, shout]);
+  }, [active, duration, playingRef, glyphChars]);
 
   if (!active) return null;
   return (
@@ -1172,7 +1287,7 @@ function RankingScene({
         active={celebrate}
         duration={HOLD - 1}
         playingRef={playingRef}
-        shout={top[0]?.name.startsWith("太田") ? SHOUT_TEXTS : undefined}
+        glyphChars={top[0]?.name.startsWith("太田") ? SHOUT_CHARS : undefined}
       />
       <div
         style={{
