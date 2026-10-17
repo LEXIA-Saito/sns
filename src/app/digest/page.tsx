@@ -828,14 +828,79 @@ interface Particle {
   phase: number;
 }
 
+/** ドット文字（落ちてくる掛け声）。色は文字ごとに変える */
+const SHOUT_COLORS = ["#ffd23f", "#ff5c8a", "#4de1ff", "#7dff6b"];
+const SHOUT_CELL = 10; // ドット文字の1ドットの大きさ（基準px）
+const SHOUT_FONT_PX = 22;
+/** 1位が広報戦略委員長の太田さんのときの掛け声（上から順に落ちる） */
+const SHOUT_TEXTS = ["よっ！", "太田プロ！", "広報戦略委員長！"]; // 文字を何ドット四方で描くか
+
+interface ShoutText {
+  cells: [number, number][];
+  outline: [number, number][];
+  w: number;
+  h: number;
+  color: string;
+  x: number; // 左端（px）
+  top: number; // 落ち着く位置の上端（px）
+  start: number; // 落ち始める時刻（秒）
+  broke: boolean;
+}
+
+/** 文字を小さく描いて、濃いところを1ドットずつ拾う（ドット絵の文字にする） */
+function rasterizeShout(text: string): { cells: [number, number][]; outline: [number, number][]; w: number; h: number } {
+  const font = `900 ${SHOUT_FONT_PX}px "PixelMplus12","Hiragino Sans","Noto Sans JP",sans-serif`;
+  const probe = document.createElement("canvas").getContext("2d")!;
+  probe.font = font;
+  const w = Math.ceil(probe.measureText(text).width) + 2;
+  const h = SHOUT_FONT_PX + 6;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext("2d")!;
+  ctx.font = font;
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#fff";
+  ctx.fillText(text, 1, SHOUT_FONT_PX);
+  const img = ctx.getImageData(0, 0, w, h).data;
+  const on = new Set<number>();
+  const cells: [number, number][] = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (img[(y * w + x) * 4 + 3] > 120) {
+        cells.push([x, y]);
+        on.add(y * w + x);
+      }
+    }
+  }
+  // 周りを1ドット黒で縁取る（背景がなんであっても読めるように）
+  const outlineSet = new Set<number>();
+  for (const [x, y] of cells) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const k = ny * w + nx;
+        if (!on.has(k)) outlineSet.add(k);
+      }
+    }
+  }
+  const outline: [number, number][] = Array.from(outlineSet).map((k) => [k % w, Math.floor(k / w)]);
+  return { cells, outline, w, h };
+}
+
 function PixelCelebration({
   active,
   duration,
   playingRef,
+  shout,
 }: {
   active: boolean;
   duration: number;
   playingRef: React.MutableRefObject<boolean>;
+  /** 上から順に落ちてくる掛け声（省略可） */
+  shout?: string[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -894,11 +959,45 @@ function PixelCelebration({
       }
     };
 
+    let elapsed = 0;
+    // 掛け声のドット文字（1つずつ時間をずらして落とす）
+    const shouts: ShoutText[] = [];
+    if (shout && shout.length > 0) {
+      const gap = 30;
+      const rasters = shout.map((t) => rasterizeShout(t));
+      const heights = rasters.map((r) => r.h * SHOUT_CELL);
+      const total = heights.reduce((a, b) => a + b, 0) + gap * (rasters.length - 1);
+      let top = Math.max(120, (H - total) / 2);
+      rasters.forEach((r, i) => {
+        shouts.push({
+          ...r,
+          color: SHOUT_COLORS[i % SHOUT_COLORS.length],
+          x: Math.round((W - r.w * SHOUT_CELL) / 2 / SHOUT_CELL) * SHOUT_CELL,
+          top,
+          start: 0.5 + i * 1.5,
+          broke: false,
+        });
+        top += heights[i] + gap;
+      });
+    }
+    const FALL = 0.8; // 落ちるのにかかる秒数
+    const BREAK_AT = Math.max(duration - 2, 4); // この時刻に、文字がばらばらに崩れて落ちる
+    const shoutY = (t: ShoutText) => {
+      const hpx = t.h * SHOUT_CELL;
+      const u = Math.min(1, Math.max(0, (elapsed - t.start) / FALL));
+      let y = -hpx + (t.top + hpx) * u * u;
+      if (u >= 1) {
+        const since = elapsed - t.start - FALL;
+        // 着地でぽんと弾む
+        y = t.top - Math.abs(Math.sin(since * 9)) * 34 * Math.exp(-since * 4.5);
+      }
+      return y;
+    };
+
     // はじめに一気に降らせ、真ん中で大きな花火を上げる
     confetti(220);
     firework();
     let flash = 1; // 最初の一瞬の白いフラッシュ
-    let elapsed = 0;
     let last = performance.now();
     let nextFirework = 0.6;
     let nextConfetti = 0.1;
@@ -934,6 +1033,39 @@ function PixelCelebration({
         ctx.fillStyle = `rgba(255,255,255,${flash * 0.55})`;
         ctx.fillRect(0, 0, W, H);
       }
+      // 掛け声: 落ちてきて弾み、しばらく見せてから、ばらばらに崩れて落ちる
+      for (const t of shouts) {
+        if (elapsed < t.start || t.broke) continue;
+        const y = shoutY(t);
+        if (elapsed >= BREAK_AT) {
+          t.broke = true;
+          for (const [cx, cy] of t.cells) {
+            parts.push({
+              x: t.x + cx * SHOUT_CELL,
+              y: y + cy * SHOUT_CELL,
+              vx: rand(-160, 160),
+              vy: rand(-260, 40),
+              g: 900,
+              life: 0,
+              max: rand(1.0, 1.9),
+              w: SHOUT_CELL,
+              h: SHOUT_CELL,
+              color: t.color,
+              wobble: 0,
+              phase: 0,
+            });
+          }
+          continue;
+        }
+        ctx.fillStyle = "#000";
+        for (const [ox, oy] of t.outline) {
+          ctx.fillRect(t.x + ox * SHOUT_CELL, Math.round(y / SHOUT_CELL) * SHOUT_CELL + oy * SHOUT_CELL, SHOUT_CELL, SHOUT_CELL);
+        }
+        ctx.fillStyle = t.color;
+        for (const [cx, cy] of t.cells) {
+          ctx.fillRect(t.x + cx * SHOUT_CELL, Math.round(y / SHOUT_CELL) * SHOUT_CELL + cy * SHOUT_CELL, SHOUT_CELL, SHOUT_CELL);
+        }
+      }
       for (const p of parts) {
         const remain = p.max - p.life;
         // 消える直前は点滅させる（ドット絵らしく、なめらかな透明ではなく）
@@ -946,7 +1078,7 @@ function PixelCelebration({
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [active, duration, playingRef]);
+  }, [active, duration, playingRef, shout]);
 
   if (!active) return null;
   return (
@@ -1002,7 +1134,7 @@ function RankingScene({
   // 下位から1行ずつ登場 → 1位は最後に大きく → しばらく見せる
   const STEP = 1.1;
   const START = 1.6;
-  const HOLD = 8;
+  const HOLD = 11;
   const n = top.length;
   const total = START + n * STEP + HOLD;
   const [t, setT] = useState(0);
@@ -1036,7 +1168,12 @@ function RankingScene({
 
   return (
     <>
-      <PixelCelebration active={celebrate} duration={HOLD - 1} playingRef={playingRef} />
+      <PixelCelebration
+        active={celebrate}
+        duration={HOLD - 1}
+        playingRef={playingRef}
+        shout={top[0]?.name.startsWith("太田") ? SHOUT_TEXTS : undefined}
+      />
       <div
         style={{
           position: "absolute",
