@@ -15,17 +15,11 @@ import {
 } from "@/components/PixelIcon";
 import { inMemoryPersistence, onAuthStateChanged, setPersistence, signInAnonymously } from "firebase/auth";
 import { getAuthOrNull } from "@/lib/firebase";
-import type { Post, AppSettings } from "@/lib/types";
+import type { Post } from "@/lib/types";
 import type { Session } from "@/lib/session";
-import {
-  subscribePosts,
-  subscribeSettings,
-  subscribeTimelineAccounts,
-  subscribeAccountNames,
-} from "@/lib/posts";
+import { subscribePosts, subscribeAccountNames } from "@/lib/posts";
 import { applyAccountNames, type AccountNames } from "@/lib/accountNames";
-import { filterProjectorPosts } from "@/lib/moderation";
-import { normalizeVisibility } from "@/lib/timelineVisibility";
+import { filterVisiblePosts } from "@/lib/moderation";
 import { ADMIN_ACCOUNT_ID } from "@/lib/auth";
 import { ACCOUNT_ROSTER } from "@/lib/roster";
 import { levelFromXp, tierFromLevel, xpByAccount } from "@/lib/level";
@@ -146,43 +140,32 @@ export default function DigestPage() {
   // ---- ライブデータ ----
   const [rawPosts, setRawPosts] = useState<Post[]>([]);
   const [accountNames, setAccountNames] = useState<AccountNames>({});
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [timelineAllow, setTimelineAllow] = useState<Record<string, boolean>>({});
 
-  /** 投稿・設定・表示許可・名前の4つが、それぞれ最初に届いたか */
-  const [loaded, setLoaded] = useState({ posts: false, settings: false, allow: false, names: false });
+  /** 投稿・名前が、それぞれ最初に届いたか */
+  const [loaded, setLoaded] = useState({ posts: false, names: false });
   useEffect(() => {
     if (viewerAuth !== "ready") return;
     const u1 = subscribePosts((list) => {
       setRawPosts(list);
       setLoaded((l) => (l.posts ? l : { ...l, posts: true }));
     });
-    const u2 = subscribeSettings((st) => {
-      setSettings(st);
-      setLoaded((l) => (l.settings ? l : { ...l, settings: true }));
-    });
-    const u3 = subscribeTimelineAccounts((allow) => {
-      setTimelineAllow(allow);
-      setLoaded((l) => (l.allow ? l : { ...l, allow: true }));
-    });
-    const u4 = subscribeAccountNames((names) => {
+    const u2 = subscribeAccountNames((names) => {
       setAccountNames(names);
       setLoaded((l) => (l.names ? l : { ...l, names: true }));
     });
     return () => {
       u1();
       u2();
-      u3();
-      u4();
     };
   }, [viewerAuth]);
-  const dataReady = loaded.posts && loaded.settings && loaded.allow && loaded.names;
+  const dataReady = loaded.posts && loaded.names;
 
   const named = useMemo(() => applyAccountNames(rawPosts, accountNames), [rawPosts, accountNames]);
 
   const latest = useMemo<Snapshot>(() => {
-    const visibility = normalizeVisibility(settings?.timelineFilterEnabled, timelineAllow);
-    const visible = filterProjectorPosts(named, visibility);
+    // LOM全員の投稿を流す（運営が非表示にした投稿だけ除く）。
+    // /projector のようにアカデミーメンバーだけには絞らない
+    const visible = filterVisiblePosts(named);
     const xp = xpByAccount(named);
     const members = Object.entries(ACCOUNT_ROSTER)
       .filter(([id]) => id !== ADMIN_ACCOUNT_ID && id !== "26-085")
@@ -193,7 +176,7 @@ export default function DigestPage() {
         xp: xp[id] ?? 0,
       }));
     return { posts: visible, xp, members, now: Date.now() };
-  }, [named, accountNames, settings?.timelineFilterEnabled, timelineAllow]);
+  }, [named, accountNames]);
   const latestRef = useRef(latest);
   latestRef.current = latest;
 
