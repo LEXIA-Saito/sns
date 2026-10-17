@@ -808,6 +808,167 @@ function LevelsScene({
 }
 
 /* ------------------------------------------------------------------ */
+/* 1位のお祝い演出（画面全体のドット：紙吹雪と花火）                        */
+/* ------------------------------------------------------------------ */
+const CONFETTI_COLORS = ["#ffffff", "#ffd23f", "#ff5c8a", "#4de1ff", "#7dff6b", "#b77dff"];
+const DOT = 12; // 粒の大きさ（基準px）。座標をこの格子にそろえてドット絵風にする
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  g: number; // 重力
+  life: number;
+  max: number;
+  w: number;
+  h: number;
+  color: string;
+  wobble: number;
+  phase: number;
+}
+
+function PixelCelebration({
+  active,
+  duration,
+  playingRef,
+}: {
+  active: boolean;
+  duration: number;
+  playingRef: React.MutableRefObject<boolean>;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+    const W = BASE_W;
+    const H = BASE_H;
+    const rand = (a: number, b: number) => a + Math.random() * (b - a);
+    const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+    const parts: Particle[] = [];
+
+    const confetti = (n: number, atTop = true) => {
+      for (let i = 0; i < n; i++) {
+        parts.push({
+          x: rand(0, W),
+          y: atTop ? rand(-200, -DOT) : rand(-100, H * 0.4),
+          vx: rand(-60, 60),
+          vy: rand(120, 360),
+          g: rand(60, 140),
+          life: 0,
+          max: rand(4, 8),
+          w: DOT * (Math.random() < 0.3 ? 1 : 1),
+          h: DOT * (Math.random() < 0.35 ? 2 : 1),
+          color: pick(CONFETTI_COLORS),
+          wobble: rand(40, 140),
+          phase: rand(0, Math.PI * 2),
+        });
+      }
+    };
+    const firework = () => {
+      const cx = rand(260, W - 260);
+      const cy = rand(160, 560);
+      const color = pick(CONFETTI_COLORS.slice(1));
+      const n = 44;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + rand(-0.05, 0.05);
+        const sp = rand(260, 560);
+        parts.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp,
+          g: 420,
+          life: 0,
+          max: rand(0.9, 1.5),
+          w: DOT,
+          h: DOT,
+          color: i % 5 === 0 ? "#ffffff" : color,
+          wobble: 0,
+          phase: 0,
+        });
+      }
+    };
+
+    // はじめに一気に降らせ、真ん中で大きな花火を上げる
+    confetti(220);
+    firework();
+    let flash = 1; // 最初の一瞬の白いフラッシュ
+    let elapsed = 0;
+    let last = performance.now();
+    let nextFirework = 0.6;
+    let nextConfetti = 0.1;
+    let raf = 0;
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (playingRef.current) {
+        elapsed += dt;
+        if (elapsed < duration) {
+          if (elapsed >= nextConfetti) {
+            confetti(14);
+            nextConfetti += 0.14;
+          }
+          if (elapsed >= nextFirework) {
+            firework();
+            nextFirework += rand(0.5, 0.9);
+          }
+        }
+        flash = Math.max(0, flash - dt * 4);
+        for (const p of parts) {
+          p.life += dt;
+          p.vy += p.g * dt;
+          p.x += (p.vx + Math.sin(p.life * 5 + p.phase) * p.wobble * 0.3) * dt;
+          p.y += p.vy * dt;
+        }
+        for (let i = parts.length - 1; i >= 0; i--) {
+          if (parts[i].life > parts[i].max || parts[i].y > H + 40) parts.splice(i, 1);
+        }
+      }
+      ctx.clearRect(0, 0, W, H);
+      if (flash > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${flash * 0.55})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+      for (const p of parts) {
+        const remain = p.max - p.life;
+        // 消える直前は点滅させる（ドット絵らしく、なめらかな透明ではなく）
+        if (remain < 0.5 && Math.floor(p.life * 18) % 2 === 0) continue;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.floor(p.x / DOT) * DOT, Math.floor(p.y / DOT) * DOT, p.w, p.h);
+      }
+      if (elapsed >= duration + 4 && parts.length === 0) return;
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [active, duration, playingRef]);
+
+  if (!active) return null;
+  return (
+    <canvas
+      ref={canvasRef}
+      width={BASE_W}
+      height={BASE_H}
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: BASE_W,
+        height: BASE_H,
+        pointerEvents: "none",
+        imageRendering: "pixelated",
+        zIndex: 20,
+      }}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* 3. レベルランキング TOP10                                             */
 /* ------------------------------------------------------------------ */
 function RankingScene({
@@ -869,8 +1030,13 @@ function RankingScene({
     return () => cancelAnimationFrame(raf);
   }, [total, playingRef]);
 
+  // 1位は最後に出る（いちばん上の行）。表示が終わったところで、画面全体のお祝い
+  const firstShownAt = START + (n - 1) * STEP + 0.4;
+  const celebrate = n > 0 && t >= firstShownAt;
+
   return (
     <>
+      <PixelCelebration active={celebrate} duration={HOLD - 1} playingRef={playingRef} />
       <div
         style={{
           position: "absolute",
