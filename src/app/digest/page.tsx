@@ -584,27 +584,41 @@ function MusicControl() {
     };
     const list = [mk(), mk()];
     audiosRef.current = list;
-    // Web Audio でつなぐ（音量・フェードを、スマホでも効かせる）
-    try {
-      const Ctor: AudioCtxCtor | undefined =
-        window.AudioContext || (window as unknown as { webkitAudioContext?: AudioCtxCtor }).webkitAudioContext;
-      if (Ctor) {
-        const ctx = new Ctor();
+    list.forEach((a) => (a.volume = volRef.current));
+    /** 最初のタッチのあとで、Web Audio につなぎ替える（音量・フェードを、スマホでも効かせる）。
+     *  タッチの前につなぐと、ブラウザが音声を止めたままにして、再生が固まってしまう */
+    let graphTried = false;
+    const initGraph = () => {
+      if (graphTried) return;
+      try {
+        const Ctor: AudioCtxCtor | undefined =
+          window.AudioContext || (window as unknown as { webkitAudioContext?: AudioCtxCtor }).webkitAudioContext;
+        if (!Ctor) {
+          graphTried = true;
+          return;
+        }
+        const ctx = ctxRef.current ?? new Ctor();
         ctxRef.current = ctx;
-        list.forEach((a, i) => {
-          const g = ctx.createGain();
-          g.gain.value = volRef.current;
-          ctx.createMediaElementSource(a).connect(g);
-          g.connect(ctx.destination);
-          gainsRef.current[i] = g;
-        });
+        ctx
+          .resume()
+          .then(() => {
+            if (graphTried || ctx.state !== "running") return;
+            graphTried = true;
+            list.forEach((a, i) => {
+              const g = ctx.createGain();
+              g.gain.value = a.volume;
+              ctx.createMediaElementSource(a).connect(g);
+              g.connect(ctx.destination);
+              a.volume = 1;
+              gainsRef.current[i] = g;
+            });
+          })
+          .catch(() => {});
+      } catch {
+        graphTried = true;
       }
-    } catch {
-      ctxRef.current = null;
-      gainsRef.current = [null, null];
-    }
+    };
     list.forEach((a, idx) => {
-      if (!gainsRef.current[idx]) a.volume = volRef.current;
       // 終わりの少し前から、次の曲を重ねる
       a.addEventListener("timeupdate", () => {
         if (curRef.current !== idx || fadingRef.current || a.paused || !isFinite(a.duration)) return;
@@ -633,7 +647,7 @@ function MusicControl() {
       .catch(() => {});
     // 最初のタッチ／クリック／キー入力で、(1) 止められていた再生を始める (2) 次の曲用の音声も「鳴らしていい」許可を取る
     const kick = () => {
-      ctxRef.current?.resume().catch(() => {});
+      initGraph();
       const cur = audiosRef.current[curRef.current];
       if (wantRef.current && cur.paused && itemsRef.current.length > 0) {
         cur
@@ -667,6 +681,8 @@ function MusicControl() {
       list.forEach((a) => a.pause());
       urlsRef.current.forEach((u) => u && URL.revokeObjectURL(u));
       ctxRef.current?.close().catch(() => {});
+      ctxRef.current = null;
+      gainsRef.current = [null, null];
     };
   }, [goTo]);
 
