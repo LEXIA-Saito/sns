@@ -438,8 +438,8 @@ export default function DigestPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 会場の音楽（この端末のファイルを選んで、シャッフルで流し続ける）             */
-/*  曲はサーバーに置かない。操作している端末のファイルをそのまま再生するだけ。   */
+/* 会場の音楽（番号順に流して、最後まで行ったら最初に戻る）                 */
+/*  同梱の曲（/digest/music）のほか、端末のファイルを選んで流すこともできる。    */
 /* ------------------------------------------------------------------ */
 function trackTitle(name: string) {
   return name
@@ -449,14 +449,9 @@ function trackTitle(name: string) {
     .trim();
 }
 
-function shuffled(n: number, first?: number) {
-  const a = Array.from({ length: n }, (_, i) => i);
-  for (let i = n - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  if (first !== undefined && n > 1 && a[0] === first) [a[0], a[1]] = [a[1], a[0]];
-  return a;
+/** ファイル名の頭の番号（1)、2)…）の順に流すので、順番どおりに並べるだけ */
+function inOrder(n: number) {
+  return Array.from({ length: n }, (_, i) => i);
 }
 
 interface MusicItem {
@@ -483,8 +478,8 @@ function MusicControl() {
     const items = itemsRef.current;
     if (items.length === 0) return;
     if (pos >= orderRef.current.length) {
-      orderRef.current = shuffled(items.length, orderRef.current[orderRef.current.length - 1]);
-      pos = 0;
+      orderRef.current = inOrder(items.length);
+      pos = 0; // 最後の曲のあとは、また最初の曲から
     }
     if (pos < 0) pos = orderRef.current.length - 1;
     posRef.current = pos;
@@ -517,14 +512,14 @@ function MusicControl() {
     a.addEventListener("ended", () => playAt(posRef.current + 1));
     a.addEventListener("error", () => playAt(posRef.current + 1));
     audioRef.current = a;
-    // 同梱の曲を読み込んで、シャッフルで流し続ける
+    // 同梱の曲を読み込んで、番号順に流し続ける
     let cancelled = false;
     fetch("/digest/music/list.json")
       .then((r) => (r.ok ? r.json() : []))
       .then((list: { file: string; title: string }[]) => {
         if (cancelled || !Array.isArray(list) || list.length === 0 || itemsRef.current.length > 0) return;
         itemsRef.current = list.map((m) => ({ title: m.title, url: `/digest/music/${m.file}` }));
-        orderRef.current = shuffled(list.length);
+        orderRef.current = inOrder(list.length);
         wantRef.current = true;
         setCount(list.length);
         playAt(0);
@@ -564,7 +559,7 @@ function MusicControl() {
     if (list.length === 0) return;
     list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
     itemsRef.current = list.map((f) => ({ title: trackTitle(f.name), file: f }));
-    orderRef.current = shuffled(list.length);
+    orderRef.current = inOrder(list.length);
     wantRef.current = true;
     setCount(list.length);
     playAt(0);
