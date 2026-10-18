@@ -457,23 +457,58 @@ interface MusicItem {
 
 const MUSIC_XFADE = 3; // 曲の終わりの何秒前から、次の曲に重ねて切り替えるか（クロスフェード）
 const MUSIC_XFADE_MANUAL = 1; // 「次へ」を押したときのクロスフェード
+/** スマホのブラウザは、画面を触った瞬間に一度も鳴らしていない音声は、あとで勝手に鳴らせない。最初のタッチで両方を一度鳴らして許可を取る */
+const SILENT_WAV = "data:audio/wav;base64,UklGRl4RAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+type AudioCtxCtor = typeof AudioContext;
 
 function MusicControl() {
   const inputRef = useRef<HTMLInputElement>(null);
   const audiosRef = useRef<HTMLAudioElement[]>([]);
+  const gainsRef = useRef<(GainNode | null)[]>([null, null]);
+  const ctxRef = useRef<AudioContext | null>(null);
   const curRef = useRef(0); // 今鳴っているほうのaudio
   const urlsRef = useRef<(string | null)[]>([null, null]);
-  const fadeRef = useRef<{ start: number; dur: number } | null>(null);
-  const rafRef = useRef(0);
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadingRef = useRef(false);
+  const unlockedRef = useRef(false);
   const itemsRef = useRef<MusicItem[]>([]);
   const posRef = useRef(0);
-  const wantRef = useRef(false); // 自動で流したい（ブラウザが音を止めていたら、最初のクリックで始める）
+  const wantRef = useRef(false); // 自動で流したい（ブラウザが音を止めていたら、最初のタッチで始める）
   const volRef = useRef(0.7);
   const [count, setCount] = useState(0);
   const [title, setTitle] = useState("");
   const [on, setOn] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [needClick, setNeedClick] = useState(false);
+
+  /** 音量の設定。Web Audio が使えれば、ゲインで（スマホでもフェードできる）。なければ、要素の音量で */
+  const setLevel = useCallback((idx: number, v: number) => {
+    const g = gainsRef.current[idx];
+    if (g) {
+      g.gain.cancelScheduledValues(0);
+      g.gain.value = v;
+    } else audiosRef.current[idx].volume = Math.min(1, Math.max(0, v));
+  }, []);
+
+  const rampLevel = useCallback((idx: number, from: number, to: number, sec: number) => {
+    const g = gainsRef.current[idx];
+    const ctx = ctxRef.current;
+    if (g && ctx) {
+      g.gain.cancelScheduledValues(ctx.currentTime);
+      g.gain.setValueAtTime(from, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(to, ctx.currentTime + sec); // 音声スレッドで進むので、タブが裏でも止まらない
+    } else {
+      // Web Audio が使えない場合の、昔ながらの方法
+      const t0 = performance.now();
+      const step = () => {
+        const t = Math.min(1, (performance.now() - t0) / (sec * 1000));
+        audiosRef.current[idx].volume = Math.min(1, Math.max(0, from + (to - from) * t));
+        if (t < 1) setTimeout(step, 50);
+      };
+      step();
+    }
+  }, []);
 
   const load = useCallback((idx: number, item: MusicItem) => {
     const a = audiosRef.current[idx];
@@ -489,26 +524,15 @@ function MusicControl() {
 
   /** クロスフェードを最後まで終わらせて、前の曲を止める */
   const finishFade = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    if (!fadeRef.current) return;
-    fadeRef.current = null;
-    const [x, y] = audiosRef.current;
-    const old = curRef.current === 0 ? y : x; // 切り替え後、curRef は新しい曲を指している
-    old.pause();
-    audiosRef.current[curRef.current].volume = volRef.current;
-  }, []);
-
-  const tick = useCallback(() => {
-    const f = fadeRef.current;
-    if (!f) return;
-    const t = Math.min(1, (performance.now() - f.start) / (f.dur * 1000));
-    const next = audiosRef.current[curRef.current];
-    const old = audiosRef.current[curRef.current === 0 ? 1 : 0];
-    next.volume = volRef.current * t;
-    old.volume = volRef.current * (1 - t);
-    if (t >= 1) finishFade();
-    else rafRef.current = requestAnimationFrame(tick);
-  }, [finishFade]);
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    fadeTimerRef.current = null;
+    if (!fadingRef.current) return;
+    fadingRef.current = false;
+    const oldIdx = curRef.current === 0 ? 1 : 0; // 切り替え後、curRef は新しい曲を指している
+    audiosRef.current[oldIdx].pause();
+    setLevel(oldIdx, 0);
+    setLevel(curRef.current, volRef.current);
+  }, [setLevel]);
 
   /** pos番目の曲へ。fade秒かけて、今の曲と重ねて切り替える（0なら、すぐ切り替え） */
   const goTo = useCallback(
@@ -526,7 +550,8 @@ function MusicControl() {
       load(nextIdx, items[pos]);
       setTitle(items[pos].title);
       const useFade = fade > 0 && !old.paused && !old.ended;
-      next.volume = useFade ? 0 : volRef.current;
+      ctxRef.current?.resume().catch(() => {});
+      setLevel(nextIdx, useFade ? 0 : volRef.current);
       next
         .play()
         .then(() => {
@@ -535,41 +560,63 @@ function MusicControl() {
         })
         .catch(() => {
           setOn(false);
-          setNeedClick(true); // 自動再生はブラウザに止められた。画面を1回クリックすれば始まる
+          setNeedClick(true); // 自動再生はブラウザに止められた。画面を1回タッチすれば始まる
         });
       curRef.current = nextIdx;
       if (useFade) {
-        fadeRef.current = { start: performance.now(), dur: fade };
-        rafRef.current = requestAnimationFrame(tick);
+        fadingRef.current = true;
+        rampLevel(nextIdx, 0, volRef.current, fade);
+        rampLevel(oldIdx, volRef.current, 0, fade);
+        fadeTimerRef.current = setTimeout(finishFade, fade * 1000 + 100);
       } else {
         old.pause();
       }
     },
-    [finishFade, load, tick],
+    [finishFade, load, rampLevel, setLevel],
   );
 
   useEffect(() => {
     const mk = () => {
       const a = new Audio();
       a.preload = "auto";
-      a.volume = volRef.current;
+      a.setAttribute("playsinline", "");
       return a;
     };
     const list = [mk(), mk()];
     audiosRef.current = list;
+    // Web Audio でつなぐ（音量・フェードを、スマホでも効かせる）
+    try {
+      const Ctor: AudioCtxCtor | undefined =
+        window.AudioContext || (window as unknown as { webkitAudioContext?: AudioCtxCtor }).webkitAudioContext;
+      if (Ctor) {
+        const ctx = new Ctor();
+        ctxRef.current = ctx;
+        list.forEach((a, i) => {
+          const g = ctx.createGain();
+          g.gain.value = volRef.current;
+          ctx.createMediaElementSource(a).connect(g);
+          g.connect(ctx.destination);
+          gainsRef.current[i] = g;
+        });
+      }
+    } catch {
+      ctxRef.current = null;
+      gainsRef.current = [null, null];
+    }
     list.forEach((a, idx) => {
+      if (!gainsRef.current[idx]) a.volume = volRef.current;
       // 終わりの少し前から、次の曲を重ねる
       a.addEventListener("timeupdate", () => {
-        if (curRef.current !== idx || fadeRef.current || a.paused || !isFinite(a.duration)) return;
+        if (curRef.current !== idx || fadingRef.current || a.paused || !isFinite(a.duration)) return;
         const remain = a.duration - a.currentTime;
         if (remain <= MUSIC_XFADE && remain > 0.2) goTo(posRef.current + 1, Math.min(MUSIC_XFADE, remain));
       });
       // 万一、重ねる前に終わったら、そのまま次へ
       a.addEventListener("ended", () => {
-        if (curRef.current === idx && !fadeRef.current) goTo(posRef.current + 1, 0);
+        if (curRef.current === idx && !fadingRef.current) goTo(posRef.current + 1, 0);
       });
       a.addEventListener("error", () => {
-        if (curRef.current === idx && !fadeRef.current && itemsRef.current.length > 0) goTo(posRef.current + 1, 0);
+        if (curRef.current === idx && !fadingRef.current && itemsRef.current.length > 0) goTo(posRef.current + 1, 0);
       });
     });
     // 同梱の曲を読み込んで、番号順に流し続ける
@@ -584,34 +631,50 @@ function MusicControl() {
         goTo(0, 0);
       })
       .catch(() => {});
-    // ブラウザは最初の操作がないと音を出せないので、最初のクリック／キー入力で始める
+    // 最初のタッチ／クリック／キー入力で、(1) 止められていた再生を始める (2) 次の曲用の音声も「鳴らしていい」許可を取る
     const kick = () => {
-      const a = audiosRef.current[curRef.current];
-      if (wantRef.current && a.paused && itemsRef.current.length > 0) {
-        a.play()
+      ctxRef.current?.resume().catch(() => {});
+      const cur = audiosRef.current[curRef.current];
+      if (wantRef.current && cur.paused && itemsRef.current.length > 0) {
+        cur
+          .play()
           .then(() => {
             setOn(true);
             setNeedClick(false);
           })
           .catch(() => {});
       }
+      if (!unlockedRef.current) {
+        unlockedRef.current = true;
+        const idle = audiosRef.current[curRef.current === 0 ? 1 : 0];
+        if (idle.paused && !idle.src) {
+          idle.src = SILENT_WAV;
+          idle
+            .play()
+            .then(() => idle.pause())
+            .catch(() => {
+              unlockedRef.current = false;
+            });
+        }
+      }
     };
-    window.addEventListener("pointerdown", kick);
-    window.addEventListener("keydown", kick);
+    const evs = ["pointerdown", "touchend", "click", "keydown"] as const;
+    evs.forEach((e) => window.addEventListener(e, kick));
     return () => {
       cancelled = true;
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener("pointerdown", kick);
-      window.removeEventListener("keydown", kick);
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      evs.forEach((e) => window.removeEventListener(e, kick));
       list.forEach((a) => a.pause());
       urlsRef.current.forEach((u) => u && URL.revokeObjectURL(u));
+      ctxRef.current?.close().catch(() => {});
     };
   }, [goTo]);
 
   useEffect(() => {
     volRef.current = volume;
-    if (!fadeRef.current) audiosRef.current[curRef.current] && (audiosRef.current[curRef.current].volume = volume);
-  }, [volume]);
+    if (fadingRef.current) finishFade();
+    else setLevel(curRef.current, volume);
+  }, [volume, finishFade, setLevel]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = Array.from(e.target.files ?? []).filter(
@@ -632,6 +695,7 @@ function MusicControl() {
     finishFade(); // 切り替えの途中なら、先に終わらせる
     if (a.paused) {
       wantRef.current = true;
+      ctxRef.current?.resume().catch(() => {});
       a.play()
         .then(() => setOn(true))
         .catch(() => {});
@@ -664,7 +728,7 @@ function MusicControl() {
           >
             <span className="text-white/60">♪</span>
             {on ? <PixelPause size={16} /> : <PixelPlay size={16} />}
-            {!on && needClick && <span>クリックで再生</span>}
+            {!on && needClick && <span>タッチで再生</span>}
           </button>
           <button
             onClick={() => goTo(posRef.current + 1, MUSIC_XFADE_MANUAL)}
