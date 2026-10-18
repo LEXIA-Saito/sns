@@ -594,11 +594,23 @@ function MusicControl() {
       <input ref={inputRef} type="file" accept="audio/*,.mp3,.m4a,.wav" multiple className="hidden" onChange={onPick} />
       {count > 0 && (
         <>
-          <button onClick={toggle} className={btn} title="音楽の再生／一時停止（Mキー）">
-            {on ? "♪ ⏸" : needClick ? "♪ クリックで再生" : "♪ ▶"}
+          <button
+            onClick={toggle}
+            className={`${btn} inline-flex items-center gap-1.5`}
+            title="音楽の再生／一時停止（Mキー）"
+            aria-label={on ? "音楽を一時停止" : "音楽を再生"}
+          >
+            <span className="text-white/60">♪</span>
+            {on ? <PixelPause size={16} /> : <PixelPlay size={16} />}
+            {!on && needClick && <span>クリックで再生</span>}
           </button>
-          <button onClick={() => playAt(posRef.current + 1)} className={btn} title="次の曲へ">
-            ⏭
+          <button
+            onClick={() => playAt(posRef.current + 1)}
+            className={`${btn} inline-flex items-center`}
+            title="次の曲へ"
+            aria-label="次の曲へ"
+          >
+            <PixelChevronRight size={16} />
           </button>
           <input
             type="range"
