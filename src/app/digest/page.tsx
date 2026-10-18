@@ -459,34 +459,55 @@ function shuffled(n: number, first?: number) {
   return a;
 }
 
+interface MusicItem {
+  title: string;
+  url?: string; // 同梱の曲（/digest/music/…）
+  file?: File; // 手で選んだ曲
+}
+
 function MusicControl() {
   const inputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const urlRef = useRef<string | null>(null);
-  const filesRef = useRef<File[]>([]);
+  const itemsRef = useRef<MusicItem[]>([]);
   const orderRef = useRef<number[]>([]);
   const posRef = useRef(0);
+  const wantRef = useRef(false); // 自動で流したい（ブラウザが音を止めていたら、最初のクリックで始める）
   const [count, setCount] = useState(0);
   const [title, setTitle] = useState("");
   const [on, setOn] = useState(false);
   const [volume, setVolume] = useState(0.7);
+  const [needClick, setNeedClick] = useState(false);
 
   const playAt = useCallback((pos: number) => {
-    const files = filesRef.current;
-    if (files.length === 0) return;
+    const items = itemsRef.current;
+    if (items.length === 0) return;
     if (pos >= orderRef.current.length) {
-      orderRef.current = shuffled(files.length, orderRef.current[orderRef.current.length - 1]);
+      orderRef.current = shuffled(items.length, orderRef.current[orderRef.current.length - 1]);
       pos = 0;
     }
     if (pos < 0) pos = orderRef.current.length - 1;
     posRef.current = pos;
-    const file = files[orderRef.current[pos]];
+    const item = items[orderRef.current[pos]];
     const a = audioRef.current!;
-    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-    urlRef.current = URL.createObjectURL(file);
-    a.src = urlRef.current;
-    setTitle(trackTitle(file.name));
-    a.play().then(() => setOn(true)).catch(() => setOn(false));
+    if (urlRef.current) {
+      URL.revokeObjectURL(urlRef.current);
+      urlRef.current = null;
+    }
+    if (item.file) {
+      urlRef.current = URL.createObjectURL(item.file);
+      a.src = urlRef.current;
+    } else a.src = item.url!;
+    setTitle(item.title);
+    a.play()
+      .then(() => {
+        setOn(true);
+        setNeedClick(false);
+      })
+      .catch(() => {
+        setOn(false);
+        setNeedClick(true); // 自動再生はブラウザに止められた。画面を1回クリックすれば始まる
+      });
   }, []);
 
   useEffect(() => {
@@ -496,7 +517,36 @@ function MusicControl() {
     a.addEventListener("ended", () => playAt(posRef.current + 1));
     a.addEventListener("error", () => playAt(posRef.current + 1));
     audioRef.current = a;
+    // 同梱の曲を読み込んで、シャッフルで流し続ける
+    let cancelled = false;
+    fetch("/digest/music/list.json")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: { file: string; title: string }[]) => {
+        if (cancelled || !Array.isArray(list) || list.length === 0 || itemsRef.current.length > 0) return;
+        itemsRef.current = list.map((m) => ({ title: m.title, url: `/digest/music/${m.file}` }));
+        orderRef.current = shuffled(list.length);
+        wantRef.current = true;
+        setCount(list.length);
+        playAt(0);
+      })
+      .catch(() => {});
+    // ブラウザは最初の操作がないと音を出せないので、最初のクリック／キー入力で始める
+    const kick = () => {
+      if (wantRef.current && a.paused && itemsRef.current.length > 0) {
+        a.play()
+          .then(() => {
+            setOn(true);
+            setNeedClick(false);
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener("pointerdown", kick);
+    window.addEventListener("keydown", kick);
     return () => {
+      cancelled = true;
+      window.removeEventListener("pointerdown", kick);
+      window.removeEventListener("keydown", kick);
       a.pause();
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
     };
@@ -513,42 +563,44 @@ function MusicControl() {
     e.target.value = "";
     if (list.length === 0) return;
     list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
-    filesRef.current = list;
+    itemsRef.current = list.map((f) => ({ title: trackTitle(f.name), file: f }));
     orderRef.current = shuffled(list.length);
+    wantRef.current = true;
     setCount(list.length);
     playAt(0);
   };
 
-  const toggle = () => {
+  const toggle = useCallback(() => {
     const a = audioRef.current;
-    if (!a || count === 0) return;
-    if (a.paused) a.play().then(() => setOn(true)).catch(() => {});
-    else {
+    if (!a || itemsRef.current.length === 0) return;
+    if (a.paused) {
+      wantRef.current = true;
+      a.play()
+        .then(() => setOn(true))
+        .catch(() => {});
+    } else {
+      wantRef.current = false;
       a.pause();
       setOn(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.key === "m" || e.key === "M") && audioRef.current && filesRef.current.length > 0) toggle();
+      if (e.key === "m" || e.key === "M") toggle();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count]);
+  }, [toggle]);
 
   const btn = "rounded-full px-2.5 py-1.5 text-xs text-white/80 transition hover:bg-white/10 hover:text-white";
   return (
     <div className="flex items-center gap-1.5">
       <input ref={inputRef} type="file" accept="audio/*,.mp3,.m4a,.wav" multiple className="hidden" onChange={onPick} />
-      <button onClick={() => inputRef.current?.click()} className={btn} title="会場の音楽ファイルを選ぶ（複数選択OK）">
-        {count === 0 ? "♪ 音楽を選ぶ" : "♪ 変更"}
-      </button>
       {count > 0 && (
         <>
           <button onClick={toggle} className={btn} title="音楽の再生／一時停止（Mキー）">
-            {on ? "⏸" : "▶"}
+            {on ? "♪ ⏸" : needClick ? "♪ クリックで再生" : "♪ ▶"}
           </button>
           <button onClick={() => playAt(posRef.current + 1)} className={btn} title="次の曲へ">
             ⏭
@@ -568,6 +620,9 @@ function MusicControl() {
           </span>
         </>
       )}
+      <button onClick={() => inputRef.current?.click()} className={btn} title="別の音楽ファイルを選ぶ（複数選択OK）">
+        {count === 0 ? "♪ 音楽を選ぶ" : "変更"}
+      </button>
     </div>
   );
 }
