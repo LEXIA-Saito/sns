@@ -421,6 +421,8 @@ export default function DigestPage() {
                 </option>
               ))}
             </select>
+            <div className="h-4 w-px bg-white/20" />
+            <MusicControl />
             <button
               onClick={toggleFullscreen}
               className="rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
@@ -432,6 +434,141 @@ export default function DigestPage() {
         </div>
       </div>
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* 会場の音楽（この端末のファイルを選んで、シャッフルで流し続ける）             */
+/*  曲はサーバーに置かない。操作している端末のファイルをそのまま再生するだけ。   */
+/* ------------------------------------------------------------------ */
+function trackTitle(name: string) {
+  return name
+    .replace(/\.[^.]+$/, "")
+    .replace(/^\s*\d+\s*[)）.．-]\s*/, "")
+    .replace(/\s*[-_ ]*\s*Music ?Video.*$/i, "")
+    .trim();
+}
+
+function shuffled(n: number, first?: number) {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  if (first !== undefined && n > 1 && a[0] === first) [a[0], a[1]] = [a[1], a[0]];
+  return a;
+}
+
+function MusicControl() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const urlRef = useRef<string | null>(null);
+  const filesRef = useRef<File[]>([]);
+  const orderRef = useRef<number[]>([]);
+  const posRef = useRef(0);
+  const [count, setCount] = useState(0);
+  const [title, setTitle] = useState("");
+  const [on, setOn] = useState(false);
+  const [volume, setVolume] = useState(0.7);
+
+  const playAt = useCallback((pos: number) => {
+    const files = filesRef.current;
+    if (files.length === 0) return;
+    if (pos >= orderRef.current.length) {
+      orderRef.current = shuffled(files.length, orderRef.current[orderRef.current.length - 1]);
+      pos = 0;
+    }
+    if (pos < 0) pos = orderRef.current.length - 1;
+    posRef.current = pos;
+    const file = files[orderRef.current[pos]];
+    const a = audioRef.current!;
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    urlRef.current = URL.createObjectURL(file);
+    a.src = urlRef.current;
+    setTitle(trackTitle(file.name));
+    a.play().then(() => setOn(true)).catch(() => setOn(false));
+  }, []);
+
+  useEffect(() => {
+    const a = new Audio();
+    a.preload = "auto";
+    a.volume = 0.7;
+    a.addEventListener("ended", () => playAt(posRef.current + 1));
+    a.addEventListener("error", () => playAt(posRef.current + 1));
+    audioRef.current = a;
+    return () => {
+      a.pause();
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    };
+  }, [playAt]);
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from(e.target.files ?? []).filter(
+      (f) => f.type.startsWith("audio/") || /\.(mp3|m4a|wav|aac|ogg|flac)$/i.test(f.name),
+    );
+    e.target.value = "";
+    if (list.length === 0) return;
+    list.sort((a, b) => a.name.localeCompare(b.name, "ja"));
+    filesRef.current = list;
+    orderRef.current = shuffled(list.length);
+    setCount(list.length);
+    playAt(0);
+  };
+
+  const toggle = () => {
+    const a = audioRef.current;
+    if (!a || count === 0) return;
+    if (a.paused) a.play().then(() => setOn(true)).catch(() => {});
+    else {
+      a.pause();
+      setOn(false);
+    }
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.key === "m" || e.key === "M") && audioRef.current && filesRef.current.length > 0) toggle();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count]);
+
+  const btn = "rounded-full px-2.5 py-1.5 text-xs text-white/80 transition hover:bg-white/10 hover:text-white";
+  return (
+    <div className="flex items-center gap-1.5">
+      <input ref={inputRef} type="file" accept="audio/*,.mp3,.m4a,.wav" multiple className="hidden" onChange={onPick} />
+      <button onClick={() => inputRef.current?.click()} className={btn} title="会場の音楽ファイルを選ぶ（複数選択OK）">
+        {count === 0 ? "♪ 音楽を選ぶ" : "♪ 変更"}
+      </button>
+      {count > 0 && (
+        <>
+          <button onClick={toggle} className={btn} title="音楽の再生／一時停止（Mキー）">
+            {on ? "⏸" : "▶"}
+          </button>
+          <button onClick={() => playAt(posRef.current + 1)} className={btn} title="次の曲へ">
+            ⏭
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="h-1 w-16 accent-white"
+            title="音量"
+          />
+          <span className="max-w-[180px] truncate text-xs text-white/50" title={title}>
+            {title}
+          </span>
+        </>
+      )}
+    </div>
   );
 }
 
