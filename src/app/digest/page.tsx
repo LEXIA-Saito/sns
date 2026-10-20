@@ -233,8 +233,12 @@ export default function DigestPage() {
     };
     onMove();
     window.addEventListener("mousemove", onMove);
+    window.addEventListener("touchstart", onMove, { passive: true });
+    window.addEventListener("pointerdown", onMove);
     return () => {
       window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchstart", onMove);
+      window.removeEventListener("pointerdown", onMove);
       if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, []);
@@ -377,11 +381,12 @@ export default function DigestPage() {
 
         {/* 運営用コントロールバー（通常は自動で隠れる） */}
         <div
-          className={`absolute bottom-6 left-1/2 -translate-x-1/2 transition-opacity duration-300 ${
+          className={`absolute inset-x-0 bottom-3 flex justify-center px-2 transition-opacity duration-300 sm:bottom-6 ${
             showControls ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           }`}
         >
-          <div className="flex items-center gap-3 rounded-full border border-white/20 bg-black/80 px-5 py-2.5 shadow-2xl backdrop-blur-md">
+          {/* 狭い画面（スマホ）でも、はみ出さずに折り返して全部のボタンが押せる */}
+          <div className="flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-3xl border border-white/20 bg-black/80 px-3 py-2 shadow-2xl backdrop-blur-md sm:gap-x-3 sm:rounded-full sm:px-5 sm:py-2.5">
             <button
               onClick={() => goNext(-1)}
               className="rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
@@ -406,7 +411,7 @@ export default function DigestPage() {
               <PixelChevronRight size={20} />
             </button>
             <div className="h-4 w-px bg-white/20" />
-            <span className="text-xs text-white/50">
+            <span className="whitespace-nowrap text-xs text-white/50">
               {phase === "timeline" ? "投稿" : phase === "levels" ? "レベル" : "ランキング"}・{lap + 1}周目
             </span>
             <select
@@ -732,7 +737,7 @@ function MusicControl() {
 
   const btn = "rounded-full px-2.5 py-1.5 text-xs text-white/80 transition hover:bg-white/10 hover:text-white";
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center justify-center gap-1.5">
       <input ref={inputRef} type="file" accept="audio/*,.mp3,.m4a,.wav" multiple className="hidden" onChange={onPick} />
       {count > 0 && (
         <>
@@ -764,7 +769,7 @@ function MusicControl() {
             className="h-1 w-16 accent-white"
             title="音量"
           />
-          <span className="max-w-[180px] truncate text-xs text-white/50" title={title}>
+          <span className="hidden max-w-[180px] truncate text-xs text-white/50 sm:inline" title={title}>
             {title}
           </span>
         </>
